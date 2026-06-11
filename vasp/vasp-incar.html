@@ -26,7 +26,6 @@
       position: relative; display: inline-block;
     }
     h2::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 1px; background-color: #2c2a29; }
-    h3 { font-size: 11pt; font-weight: 600; color: #3a3836; margin: 28px 0 10px; }
     p { font-size: 10.5pt; margin: 0 0 16px; }
     .note { background: #f5f3ef; border-left: 3px solid #b0a898; padding: 14px 18px; margin: 24px 0; font-size: 10pt; color: #4a4845; border-radius: 0 4px 4px 0; }
     code { font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
@@ -34,9 +33,66 @@
     table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 10pt; }
     th { text-align: left; padding: 10px 14px; background: #f0ede8; border-bottom: 2px solid #dedad5; font-weight: 600; letter-spacing: 0.5px; }
     td { padding: 10px 14px; border-bottom: 1px solid #ece9e4; vertical-align: top; }
-    td:first-child { font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; color: #3a5a8a; white-space: nowrap; }
+    .tag-row td:first-child { font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; color: #3a5a8a; white-space: nowrap; }
     tr:last-child td { border-bottom: none; }
     footer { max-width: 740px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+
+    /* Interactive tag rows */
+    .tag-row { cursor: pointer; }
+    .tag-row:hover td { background: #f5f3ef; }
+    .tag-indicator {
+      display: inline-block; margin-left: 5px;
+      font-size: 7pt; color: #b0a898;
+      transition: transform 0.2s ease;
+      vertical-align: middle;
+    }
+    .tag-row.open .tag-indicator { transform: rotate(90deg); }
+
+    /* Detail row */
+    .detail-row td {
+      padding: 0 !important;
+      border-bottom: 1px solid #dedad5 !important;
+      background: transparent !important;
+      font-family: inherit !important;
+      color: inherit !important;
+      white-space: normal !important;
+    }
+    .detail-content {
+      background: #f9f7f4;
+      border-left: 3px solid #4a69b5;
+      padding: 22px 26px;
+      animation: detailIn 0.18s ease-out;
+    }
+    @keyframes detailIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .detail-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px;
+    }
+    .detail-head .tag-name {
+      font-family: "SFMono-Regular", "Consolas", "Menlo", monospace;
+      font-size: 12pt; font-weight: 600; color: #1a3a6a;
+    }
+    .wiki-link { font-size: 8pt; color: #4a69b5; text-decoration: none; }
+    .wiki-link:hover { text-decoration: underline; }
+    .syntax-box {
+      font-family: "SFMono-Regular", "Consolas", "Menlo", monospace;
+      font-size: 9pt; background: #edeae4; border-radius: 3px;
+      padding: 9px 13px; margin-bottom: 14px; color: #2c2a29;
+    }
+    .detail-content p { font-size: 10pt; margin: 0 0 10px; color: #3a3836; }
+    .detail-content h4 { font-size: 10pt; font-weight: 600; color: #2c2a29; margin: 16px 0 7px; }
+    .detail-content pre { font-size: 9pt; padding: 10px 14px; margin: 10px 0; background: #edeae4; }
+    .detail-content code { font-size: 9pt; }
+    .warn-box {
+      background: #fef9ee; border-left: 3px solid #d4a017;
+      padding: 8px 13px; margin: 10px 0; font-size: 9.5pt; color: #5a4a1a;
+      border-radius: 0 3px 3px 0; line-height: 1.7;
+    }
+    .related { margin-top: 14px; padding-top: 10px; border-top: 1px solid #dedad5; font-size: 9pt; color: #73706c; }
+    .related code { font-size: 9pt; color: #3a5a8a; }
   </style>
 </head>
 <body>
@@ -44,7 +100,7 @@
 <header>
   <div class="breadcrumb"><a href="../index.html">研究メモ</a> &rsaquo; <a href="../index.html#vasp">VASP</a></div>
   <h1 class="font-serif">INCARタグまとめ</h1>
-  <p class="font-serif">— よく使うタグと設定の目安 —</p>
+  <p class="font-serif">— よく使うタグと設定の目安 &nbsp;|&nbsp; タグ名をクリックで詳細表示 —</p>
 </header>
 
 <main>
@@ -52,55 +108,61 @@
   <h2 class="font-serif">基本設定</h2>
   <table>
     <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
-    <tr><td>SYSTEM</td><td>計算の説明文（任意）</td><td>自由記述</td></tr>
-    <tr><td>ENCUT</td><td>平面波カットオフエネルギー（eV）。POTCAR の ENMAX の 1.3 倍が目安</td><td>400–600</td></tr>
-    <tr><td>EDIFF</td><td>SCF 収束判定のエネルギー閾値（eV）</td><td>1E-6</td></tr>
-    <tr><td>EDIFFG</td><td>構造最適化の収束判定。負値にするとイオン力の閾値（eV/Å）</td><td>-0.01</td></tr>
-    <tr><td>NSW</td><td>イオン最適化のステップ数。0 で静的計算</td><td>0 / 100</td></tr>
-    <tr><td>IBRION</td><td>イオン更新アルゴリズム。2: CG、3: damped MD、-1: 固定</td><td>2</td></tr>
-    <tr><td>ISIF</td><td>体積・形状の最適化フラグ。2: 原子位置のみ、3: 全最適化</td><td>2 / 3</td></tr>
+    <tr class="tag-row" data-tag="SYSTEM"><td>SYSTEM <span class="tag-indicator">▶</span></td><td>計算の説明文（任意）</td><td>自由記述</td></tr>
+    <tr class="tag-row" data-tag="ENCUT"><td>ENCUT <span class="tag-indicator">▶</span></td><td>平面波カットオフエネルギー（eV）。POTCAR の ENMAX の 1.3 倍が目安</td><td>400–600</td></tr>
+    <tr class="tag-row" data-tag="EDIFF"><td>EDIFF <span class="tag-indicator">▶</span></td><td>SCF 収束判定のエネルギー閾値（eV）</td><td>1E-6</td></tr>
+    <tr class="tag-row" data-tag="EDIFFG"><td>EDIFFG <span class="tag-indicator">▶</span></td><td>構造最適化の収束判定。負値にするとイオン力の閾値（eV/Å）</td><td>-0.01</td></tr>
+    <tr class="tag-row" data-tag="NSW"><td>NSW <span class="tag-indicator">▶</span></td><td>イオン最適化のステップ数。0 で静的計算</td><td>0 / 100</td></tr>
+    <tr class="tag-row" data-tag="IBRION"><td>IBRION <span class="tag-indicator">▶</span></td><td>イオン更新アルゴリズム。2: CG、3: damped MD、-1: 固定</td><td>2</td></tr>
+    <tr class="tag-row" data-tag="ISIF"><td>ISIF <span class="tag-indicator">▶</span></td><td>体積・形状の最適化フラグ。2: 原子位置のみ、3: 全最適化</td><td>2 / 3</td></tr>
+  </table>
+
+  <h2 class="font-serif">格子・セル制御</h2>
+  <table>
+    <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
+    <tr class="tag-row" data-tag="LATTICE_CONSTRAINTS"><td>LATTICE_CONSTRAINTS <span class="tag-indicator">▶</span></td><td>格子ベクトルの変化を方向ごとに制限する。2D材料や液体 NpT-MD に有用</td><td>.TRUE. .TRUE. .FALSE.</td></tr>
   </table>
 
   <h2 class="font-serif">電子構造・収束設定</h2>
   <table>
     <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
-    <tr><td>ISMEAR</td><td>スメアリング手法。金属: 1（Methfessel-Paxton）、絶縁体: 0（Gaussian）、DOS: -5（テトラへドロン）</td><td>1 / 0 / -5</td></tr>
-    <tr><td>SIGMA</td><td>スメアリング幅（eV）。小さすぎると収束不安定</td><td>0.1–0.2</td></tr>
-    <tr><td>NELM</td><td>SCF 最大ループ数</td><td>100–200</td></tr>
-    <tr><td>NELMIN</td><td>SCF 最小ループ数（初期振動を防ぐ）</td><td>6</td></tr>
-    <tr><td>ALGO</td><td>電子最適化アルゴリズム。Normal: RMM-DIIS、Fast: RMM+DIAG、All: blocked Davidson</td><td>Normal / Fast</td></tr>
-    <tr><td>PREC</td><td>計算精度プリセット。Normal で大半は OK、Accurate で FFT グリッド倍密度</td><td>Normal / Accurate</td></tr>
-    <tr><td>LREAL</td><td>実空間射影。Auto: 自動選択（大系では True が速い）</td><td>Auto</td></tr>
+    <tr class="tag-row" data-tag="ISMEAR"><td>ISMEAR <span class="tag-indicator">▶</span></td><td>スメアリング手法。金属: 1（Methfessel-Paxton）、絶縁体: 0（Gaussian）、DOS: -5（テトラへドロン）</td><td>1 / 0 / -5</td></tr>
+    <tr class="tag-row" data-tag="SIGMA"><td>SIGMA <span class="tag-indicator">▶</span></td><td>スメアリング幅（eV）。小さすぎると収束不安定</td><td>0.1–0.2</td></tr>
+    <tr class="tag-row" data-tag="NELM"><td>NELM <span class="tag-indicator">▶</span></td><td>SCF 最大ループ数</td><td>100–200</td></tr>
+    <tr class="tag-row" data-tag="NELMIN"><td>NELMIN <span class="tag-indicator">▶</span></td><td>SCF 最小ループ数（初期振動を防ぐ）</td><td>6</td></tr>
+    <tr class="tag-row" data-tag="ALGO"><td>ALGO <span class="tag-indicator">▶</span></td><td>電子最適化アルゴリズム。Normal: RMM-DIIS、Fast: RMM+DIAG、All: blocked Davidson</td><td>Normal / Fast</td></tr>
+    <tr class="tag-row" data-tag="PREC"><td>PREC <span class="tag-indicator">▶</span></td><td>計算精度プリセット。Normal で大半は OK、Accurate で FFT グリッド倍密度</td><td>Normal / Accurate</td></tr>
+    <tr class="tag-row" data-tag="LREAL"><td>LREAL <span class="tag-indicator">▶</span></td><td>実空間射影。Auto: 自動選択（大系では True が速い）</td><td>Auto</td></tr>
   </table>
 
   <h2 class="font-serif">スピン・磁性</h2>
   <table>
     <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
-    <tr><td>ISPIN</td><td>スピン分極計算。1: 非スピン分極、2: スピン分極</td><td>1 / 2</td></tr>
-    <tr><td>MAGMOM</td><td>各原子の初期磁気モーメント（μB）</td><td>例: 3 0 0</td></tr>
-    <tr><td>LSORBIT</td><td>.TRUE. でスピン軌道結合 (SOC) を有効化</td><td>.TRUE.</td></tr>
-    <tr><td>SAXIS</td><td>SOC での量子化軸方向</td><td>0 0 1</td></tr>
+    <tr class="tag-row" data-tag="ISPIN"><td>ISPIN <span class="tag-indicator">▶</span></td><td>スピン分極計算。1: 非スピン分極、2: スピン分極</td><td>1 / 2</td></tr>
+    <tr class="tag-row" data-tag="MAGMOM"><td>MAGMOM <span class="tag-indicator">▶</span></td><td>各原子の初期磁気モーメント（μB）</td><td>例: 3 0 0</td></tr>
+    <tr class="tag-row" data-tag="LSORBIT"><td>LSORBIT <span class="tag-indicator">▶</span></td><td>.TRUE. でスピン軌道結合 (SOC) を有効化</td><td>.TRUE.</td></tr>
+    <tr class="tag-row" data-tag="SAXIS"><td>SAXIS <span class="tag-indicator">▶</span></td><td>SOC での量子化軸方向</td><td>0 0 1</td></tr>
   </table>
 
   <h2 class="font-serif">汎関数・ハイブリッド・DFT+U</h2>
   <table>
     <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
-    <tr><td>GGA</td><td>交換相関汎関数の種類。PE: PBE、PS: PBEsol</td><td>PE</td></tr>
-    <tr><td>LDAU</td><td>.TRUE. で DFT+U を有効化</td><td>.TRUE.</td></tr>
-    <tr><td>LDAUTYPE</td><td>+U の形式。2: Dudarev (単一 U-J パラメータ)</td><td>2</td></tr>
-    <tr><td>LDAUU</td><td>各種の U 値（eV）</td><td>例: 0 4 0</td></tr>
-    <tr><td>HFSCREEN</td><td>HSE06 のスクリーニング長。0.2 Å⁻¹ が HSE06</td><td>0.2</td></tr>
-    <tr><td>AEXX</td><td>交換汎関数の HF 混合率。HSE06: 0.25</td><td>0.25</td></tr>
+    <tr class="tag-row" data-tag="GGA"><td>GGA <span class="tag-indicator">▶</span></td><td>交換相関汎関数の種類。PE: PBE、PS: PBEsol</td><td>PE</td></tr>
+    <tr class="tag-row" data-tag="LDAU"><td>LDAU <span class="tag-indicator">▶</span></td><td>.TRUE. で DFT+U を有効化</td><td>.TRUE.</td></tr>
+    <tr class="tag-row" data-tag="LDAUTYPE"><td>LDAUTYPE <span class="tag-indicator">▶</span></td><td>+U の形式。2: Dudarev (単一 U-J パラメータ)</td><td>2</td></tr>
+    <tr class="tag-row" data-tag="LDAUU"><td>LDAUU <span class="tag-indicator">▶</span></td><td>各種の U 値（eV）</td><td>例: 0 4 0</td></tr>
+    <tr class="tag-row" data-tag="HFSCREEN"><td>HFSCREEN <span class="tag-indicator">▶</span></td><td>HSE06 のスクリーニング長。0.2 Å⁻¹ が HSE06</td><td>0.2</td></tr>
+    <tr class="tag-row" data-tag="AEXX"><td>AEXX <span class="tag-indicator">▶</span></td><td>交換汎関数の HF 混合率。HSE06: 0.25</td><td>0.25</td></tr>
   </table>
 
   <h2 class="font-serif">出力制御</h2>
   <table>
     <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
-    <tr><td>LORBIT</td><td>投影 DOS の出力。11: l 成分あり、10: なし</td><td>11</td></tr>
-    <tr><td>NEDOS</td><td>DOS のエネルギーグリッド数</td><td>2000</td></tr>
-    <tr><td>LWAVE</td><td>.FALSE. で WAVECAR の出力を抑制（ディスク節約）</td><td>.FALSE.</td></tr>
-    <tr><td>LCHARG</td><td>.FALSE. で CHGCAR 出力を抑制</td><td>.FALSE.</td></tr>
-    <tr><td>NWRITE</td><td>OUTCAR への出力頻度。0: 最小限、2: 標準</td><td>2</td></tr>
+    <tr class="tag-row" data-tag="LORBIT"><td>LORBIT <span class="tag-indicator">▶</span></td><td>投影 DOS の出力。11: lm 成分あり、10: l 成分のみ</td><td>11</td></tr>
+    <tr class="tag-row" data-tag="NEDOS"><td>NEDOS <span class="tag-indicator">▶</span></td><td>DOS のエネルギーグリッド数</td><td>2000</td></tr>
+    <tr class="tag-row" data-tag="LWAVE"><td>LWAVE <span class="tag-indicator">▶</span></td><td>.FALSE. で WAVECAR の出力を抑制（ディスク節約）</td><td>.FALSE.</td></tr>
+    <tr class="tag-row" data-tag="LCHARG"><td>LCHARG <span class="tag-indicator">▶</span></td><td>.FALSE. で CHGCAR 出力を抑制</td><td>.FALSE.</td></tr>
+    <tr class="tag-row" data-tag="NWRITE"><td>NWRITE <span class="tag-indicator">▶</span></td><td>OUTCAR への出力頻度。0: 最小限、2: 標準</td><td>2</td></tr>
   </table>
 
   <h2 class="font-serif">バンド構造計算用 INCAR 例</h2>
@@ -127,6 +189,487 @@ LCHARG = .FALSE.</pre>
 <footer>
   <p class="font-serif">&copy; 2026 研究メモ</p>
 </footer>
+
+<script>
+const tagDetails = {
+  SYSTEM: {
+    wiki: 'https://vasp.at/wiki/SYSTEM',
+    syntax: 'SYSTEM = &lt;string&gt;',
+    content: `
+      <p>計算の説明文を自由に記述するラベルタグ。VASPの計算動作には一切影響しない。内容は OUTCAR の先頭に記録される。</p>
+      <h4>使い方</h4>
+      <p>計算の目的・系の名前・汎関数・条件などをメモしておくと後から整理しやすい。</p>
+      <pre>SYSTEM = Fe3O4 bulk | GGA+U U=4eV | geometry opt</pre>
+    `,
+    related: []
+  },
+
+  ENCUT: {
+    wiki: 'https://vasp.at/wiki/ENCUT',
+    syntax: 'ENCUT = [real]   (単位: eV)',
+    content: `
+      <p>平面波展開のカットオフエネルギー（eV）。全エネルギーは ENCUT を上げるにつれて収束し、ある値以上では変化が小さくなる。</p>
+      <h4>設定の目安</h4>
+      <p>最低でも POTCAR に記載の <code>ENMAX</code>（各元素の最大値）以上。精度を担保するには ENMAX &times; 1.3 程度が目安。本格計算に先立ち収束テストを行うこと。</p>
+      <div class="warn-box"><strong>PREC との関係:</strong> ENCUT を明示した場合は PREC の影響を受けない。未指定の場合は PREC=Accurate で ENMAX が内部的に引き上げられる。</div>
+    `,
+    related: ['PREC']
+  },
+
+  EDIFF: {
+    wiki: 'https://vasp.at/wiki/EDIFF',
+    syntax: 'EDIFF = [real]   (単位: eV、デフォルト: 1E-4)',
+    content: `
+      <p>SCFループの収束判定閾値。前後のステップ間の全エネルギー変化量がこの値を下回ったとき SCF を終了する。</p>
+      <h4>推奨値</h4>
+      <p>通常の構造最適化・バンド計算: <code>1E-5</code> &ndash; <code>1E-6</code><br>
+         フォノン計算や応力精度が重要な場合: <code>1E-7</code> &ndash; <code>1E-8</code></p>
+      <div class="warn-box"><strong>注意:</strong> SCF 精度が低いと EDIFFG の収束判定（力の閾値）が信頼できなくなる。EDIFFG と EDIFF はセットで設定する。</div>
+    `,
+    related: ['EDIFFG', 'NELM']
+  },
+
+  EDIFFG: {
+    wiki: 'https://vasp.at/wiki/EDIFFG',
+    syntax: 'EDIFFG = [real]   (正: eV、負: eV/Å)',
+    content: `
+      <p>イオン構造最適化の収束判定閾値。</p>
+      <p><strong>正値</strong>: ステップ間のエネルギー変化が閾値以下で収束。<br>
+         <strong>負値</strong>（推奨）: すべてのイオン力の最大成分の絶対値が |EDIFFG| 以下で収束。</p>
+      <h4>典型的な値</h4>
+      <p><code>-0.02</code> eV/Å: 通常の構造最適化<br>
+         <code>-0.01</code> eV/Å: 高精度（フォノン前処理など）<br>
+         <code>-0.001</code> eV/Å: 非常に精密な最適化</p>
+      <div class="warn-box"><strong>NSW=0 のとき:</strong> EDIFFG は無視される。</div>
+    `,
+    related: ['EDIFF', 'NSW', 'IBRION']
+  },
+
+  NSW: {
+    wiki: 'https://vasp.at/wiki/NSW',
+    syntax: 'NSW = [integer]   (デフォルト: 0)',
+    content: `
+      <p>イオン構造最適化・MD で実行するステップ数の上限。</p>
+      <p><code>NSW = 0</code>: イオン位置を固定した静的（SCFのみ）計算。<br>
+         <code>NSW &gt; 0</code>: 最大 NSW ステップのイオン更新。EDIFFG を満たせば途中終了。</p>
+      <h4>目安</h4>
+      <p>CG法（IBRION=2）での構造最適化: 50&ndash;200 ステップ。収束しない場合は増やすか初期構造を改善する。</p>
+      <div class="warn-box"><strong>注意:</strong> NSW &gt; 0 でも IBRION = -1 なら構造は動かない。</div>
+    `,
+    related: ['IBRION', 'EDIFFG']
+  },
+
+  IBRION: {
+    wiki: 'https://vasp.at/wiki/IBRION',
+    syntax: 'IBRION = [integer]   (NSW&gt;0 なら 0、それ以外は -1)',
+    content: `
+      <p>イオンの更新アルゴリズムを指定する。</p>
+      <h4>主な値</h4>
+      <p><code>-1</code>: イオン位置を固定（静的計算）<br>
+         <code>&nbsp;0</code>: 分子動力学（MD）<br>
+         <code>&nbsp;1</code>: quasi-Newton 法（RMM-DIIS によるヘシアン更新）<br>
+         <code>&nbsp;2</code>: 共役勾配法（CG）。多くの場合に安定<br>
+         <code>&nbsp;3</code>: ダンプド MD。難しい系の緩和に有効<br>
+         <code>&nbsp;5</code>: 有限差分フォノン（数値二次微分）<br>
+         <code>&nbsp;6</code>: 有限差分フォノン（より精密）<br>
+         <code>&nbsp;7/8</code>: DFPT によるフォノン</p>
+      <div class="warn-box"><strong>CG (2) vs quasi-Newton (1):</strong> IBRION=2 は初期ヘシアンに依存しないため安定。IBRION=1 は初期構造が悪いと発散することがある。</div>
+    `,
+    related: ['NSW', 'EDIFFG', 'ISIF']
+  },
+
+  ISIF: {
+    wiki: 'https://vasp.at/wiki/ISIF',
+    syntax: 'ISIF = [integer]   (デフォルト: 2)',
+    content: `
+      <p>構造最適化において何を緩和・計算するかを決定するフラグ。応力テンソルの計算とセルの形状・体積更新を個別に制御する。</p>
+      <h4>ISIF 値と意味</h4>
+      <p><code>0</code>: 力のみ計算、応力テンソル未計算、セル変化なし<br>
+         <code>1</code>: 力 + 応力テンソルのトレースのみ<br>
+         <code>2</code>: 力 + 応力テンソル全成分（セルは変化させない）← <strong>通常の原子位置最適化</strong><br>
+         <code>3</code>: 力 + 応力 + セル形状・体積 ← <strong>全最適化</strong><br>
+         <code>4</code>: 力 + 応力 + セル形状（体積固定）<br>
+         <code>5</code>: 応力 + セル形状・体積（原子位置固定）<br>
+         <code>6</code>: 応力 + セル形状（体積固定、原子位置固定）<br>
+         <code>7</code>: 体積のみ緩和（形状・原子位置固定）</p>
+      <div class="warn-box"><strong>スラブ計算:</strong> 通常 ISIF=2（セル固定）を使う。ISIF=3 にすると真空層まで縮む可能性がある。</div>
+    `,
+    related: ['IBRION', 'NSW', 'LATTICE_CONSTRAINTS']
+  },
+
+  LATTICE_CONSTRAINTS: {
+    wiki: 'https://vasp.at/wiki/LATTICE_CONSTRAINTS',
+    syntax: 'LATTICE_CONSTRAINTS = [logical] [logical] [logical]',
+    content: `
+      <p>3つの真偽値（<code>.TRUE.</code>/<code>.FALSE.</code>）を指定して、格子ベクトルの変化を選択的に許可するタグ。POSCAR の格子ベクトル a&#x2081;, a&#x2082;, a&#x2083; を 3&times;3 行列 A とみなし、その成分の更新を制約する。元々は MD 中にセルの自由度を縛る目的のタグ。</p>
+
+      <h4>直方晶の場合（Orthorhombic case）</h4>
+      <p>行列 A が対角形になるため、各真偽値が各方向の格子定数の変化に直接対応する。いずれかを <code>.FALSE.</code> にするとその方向の格子定数は変化しなくなる。</p>
+
+      <h4>MD（IBRION=0）での使い方</h4>
+      <p>NpT アンサンブルの（直方晶）液体に対し、以下が推奨されている：</p>
+      <pre>LATTICE_CONSTRAINTS = .FALSE. .FALSE. .TRUE.</pre>
+      <p>最初の2つの格子定数は固定し、3番目のみをバロスタットの体積変化のために開放する（系をピストンのように扱う）。液体の NpT で全格子自由度を緩めると不可逆な変形が生じやすく、極端に平たいスーパーセルになって妥当な MD 軌道が得られなくなるため、この制約が有効。</p>
+
+      <h4>構造最適化（IBRION=1,2）での使い方</h4>
+      <p>2D 材料の面内格子定数を緩和する際に有用。a&#x2081;&ndash;a&#x2082; 面にスラブがある場合（a&#x2083; 方向に真空）：</p>
+      <pre>LATTICE_CONSTRAINTS = .TRUE. .TRUE. .FALSE.</pre>
+      <p>（面内 a, b は緩め、真空方向 c は固定）</p>
+
+      <h4>非直方晶の場合（Non-orthorhombic case）</h4>
+      <p>使い方が複雑になり、タグは応力テンソルの特定の行・列をゼロにする。応力をゼロにした分、対応する格子行列 A の成分が更新されなくなる。</p>
+      <p><code>.FALSE. .TRUE. .TRUE.</code> &rarr; 応力テンソルの 1 行目と 1 列目をゼロ &rarr; A の 1 行目と 1 列目が変化しない</p>
+      <p><code>.FALSE. .TRUE. .FALSE.</code> &rarr; yy 成分（a&#x2082;&#x2082;）のみが残り、A の a&#x2082;&#x2082; 成分のみが変化する</p>
+
+      <div class="warn-box"><strong>注意1:</strong> 非直方晶では、格子ベクトル間の角度は保存されない。</div>
+      <div class="warn-box"><strong>注意2:</strong> IBRION=1,2 との併用は <strong>VASP 6.4.3</strong> から利用可能。</div>
+      <div class="warn-box"><strong>注意3:</strong> ISIF=4,5 との併用は <strong>VASP 6.5.1</strong> から利用可能。</div>
+      <div class="warn-box"><strong>注意4:</strong> 6.5.0 未満のバージョンにはバグあり（フォーラム記事参照）。</div>
+    `,
+    related: ['IBRION', 'ISIF', 'MDALGO']
+  },
+
+  ISMEAR: {
+    wiki: 'https://vasp.at/wiki/ISMEAR',
+    syntax: 'ISMEAR = [integer]   (デフォルト: 1)',
+    content: `
+      <p>部分占有数（フェルミ準位付近のスメアリング）の手法を指定する。</p>
+      <h4>値と推奨用途</h4>
+      <p><code>-5</code>: Bl&ouml;chl テトラへドロン法。半導体・絶縁体の DOS 精度が最も高い。<strong>均一な k 点グリッドが必要</strong>（高対称点パスには使えない）<br>
+         <code>-1</code>: Fermi-Dirac スメアリング（有限温度 MD 向け）<br>
+         <code>&nbsp;0</code>: Gaussian スメアリング。半導体・絶縁体の静的計算に使える<br>
+         <code>&nbsp;1</code>: Methfessel-Paxton 1次。金属の推奨手法<br>
+         <code>&nbsp;2</code>: Methfessel-Paxton 2次。金属でさらに精度が必要なとき</p>
+      <div class="warn-box"><strong>DOS 計算のまとめ:</strong> 精密な DOS は ISMEAR=-5 + 小さめの SIGMA。バンド構造計算（高対称点パス）では ISMEAR=0 または 1。</div>
+    `,
+    related: ['SIGMA']
+  },
+
+  SIGMA: {
+    wiki: 'https://vasp.at/wiki/SIGMA',
+    syntax: 'SIGMA = [real]   (単位: eV、デフォルト: 0.2)',
+    content: `
+      <p>スメアリングの幅（eV）。値が大きいほど収束は安定するが物理的な精度が下がる。</p>
+      <h4>推奨値</h4>
+      <p>金属（ISMEAR=1）: <code>0.05</code> &ndash; <code>0.2</code>。自由電子的な金属は大きめ（0.2）、d 電子系は小さめ（0.05&ndash;0.1）。<br>
+         絶縁体・半導体（ISMEAR=0）: <code>0.05</code> 以下。バンドギャップより十分小さい値にすること。</p>
+      <div class="warn-box"><strong>検証方法:</strong> OUTCAR の「entropy contribution」が全エネルギーの 0.1% 以下になる SIGMA を選ぶと安全。</div>
+    `,
+    related: ['ISMEAR']
+  },
+
+  NELM: {
+    wiki: 'https://vasp.at/wiki/NELM',
+    syntax: 'NELM = [integer]   (デフォルト: 60)',
+    content: `
+      <p>SCF ループの最大反復回数。この回数に達しても収束しない場合、VASP は警告を出して次のイオンステップに進む（または終了する）。</p>
+      <h4>設定の目安</h4>
+      <p>通常は 100&ndash;200 で十分。磁性体・強相関系・ハイブリッド汎関数では 200 以上必要なこともある。</p>
+      <div class="warn-box"><strong>収束しない場合:</strong> NELM を増やすより、ALGO・AMIX・BMIX などの収束補助パラメータを調整する方が根本的な対処になる。</div>
+    `,
+    related: ['EDIFF', 'NELMIN', 'ALGO']
+  },
+
+  NELMIN: {
+    wiki: 'https://vasp.at/wiki/NELMIN',
+    syntax: 'NELMIN = [integer]   (デフォルト: 2)',
+    content: `
+      <p>SCF ループの最小反復回数。最初の数ステップは電荷密度が不安定なため、EDIFF を満たしても直ちには収束終了させないためのガード。</p>
+      <h4>設定の目安</h4>
+      <p>デフォルトの 2 で多くの場合は問題ない。MD 計算（IBRION=0）では電荷の連続性のため 4&ndash;8 に設定することがある。</p>
+    `,
+    related: ['NELM', 'EDIFF']
+  },
+
+  ALGO: {
+    wiki: 'https://vasp.at/wiki/ALGO',
+    syntax: 'ALGO = [string]   (デフォルト: Normal)',
+    content: `
+      <p>電子の自己無撞着計算のアルゴリズムを指定する。</p>
+      <h4>主な選択肢</h4>
+      <p><code>Normal</code>: blocked Davidson。ほぼすべての系に使える安定な手法<br>
+         <code>Fast</code>: 最初に Davidson で初期化し、その後 RMM-DIIS に切り替える。多くの場合 Normal より速い<br>
+         <code>All</code>: Davidson のみ（RMM-DIIS を使わない）。強相関系・磁性体で収束しにくいときに<br>
+         <code>Damped</code>: 擬似 MD による収束。MD 計算や金属で有効</p>
+      <div class="warn-box"><strong>ハイブリッド汎関数（HSE 等）:</strong> ALGO=All または Damped が推奨。Fast では収束しないことがある。</div>
+    `,
+    related: ['NELM', 'NELMIN']
+  },
+
+  PREC: {
+    wiki: 'https://vasp.at/wiki/PREC',
+    syntax: 'PREC = [string]   (デフォルト: Normal)',
+    content: `
+      <p>計算の全体的な精度プリセット。FFT グリッドの密度や ENCUT の扱いを一括設定する。</p>
+      <h4>主な選択肢</h4>
+      <p><code>Low</code>: 最小精度。テストや荒い予備計算に<br>
+         <code>Normal</code>: 標準。多くの用途に十分<br>
+         <code>Accurate</code>: FFT グリッドを倍密度にし、折り返しエラー（wrap-around error）を抑制。フォノン・EFG・NMR 計算などで推奨<br>
+         <code>High</code>: さらに高精度（通常は Accurate で十分）</p>
+      <div class="warn-box"><strong>ENCUT との関係:</strong> ENCUT を明示すればその値が使われる。未指定の場合のみ PREC が ENMAX を引き上げる。</div>
+    `,
+    related: ['ENCUT']
+  },
+
+  LREAL: {
+    wiki: 'https://vasp.at/wiki/LREAL',
+    syntax: 'LREAL = [logical or string]   (デフォルト: .FALSE.)',
+    content: `
+      <p>非局所ポテンシャルの射影を実空間で行うかどうかを指定する。</p>
+      <h4>値と選択基準</h4>
+      <p><code>.FALSE.</code>: 逆空間射影（正確。小系 &lt;15 原子程度に推奨）<br>
+         <code>Auto</code>: VASP が自動選択（推奨。原子数に応じて切り替える）<br>
+         <code>.TRUE. / On</code>: 実空間射影（大系で高速だが若干不正確）</p>
+      <div class="warn-box"><strong>精度の注意:</strong> LREAL=.TRUE. は力や応力に系統誤差が入る。格子定数の精密計算やフォノンには LREAL=.FALSE. を推奨。</div>
+    `,
+    related: ['PREC', 'ENCUT']
+  },
+
+  ISPIN: {
+    wiki: 'https://vasp.at/wiki/ISPIN',
+    syntax: 'ISPIN = [integer]   (デフォルト: 1)',
+    content: `
+      <p>スピン分極計算を行うかどうかを指定する。</p>
+      <p><code>1</code>: スピン非分極（非磁性系）<br>
+         <code>2</code>: スピン分極（コリニア磁性。アップとダウンの電荷密度を別々に計算）</p>
+      <div class="warn-box"><strong>非コリニア磁性・SOC との関係:</strong> LSORBIT=.TRUE. や LNONCOLLINEAR=.TRUE. の場合は ISPIN=2 と設定するが、2 成分スピノル波動関数を使うため内部処理が異なる。</div>
+    `,
+    related: ['MAGMOM', 'LSORBIT']
+  },
+
+  MAGMOM: {
+    wiki: 'https://vasp.at/wiki/MAGMOM',
+    syntax: 'MAGMOM = [real list]   (単位: &mu;B)',
+    content: `
+      <p>各原子の初期磁気モーメントを指定する。SCF の初期値として使われ、収束後の磁気モーメントとは異なる場合がある。原子の順番は POSCAR と一致させる。繰り返し記法が使える。</p>
+      <h4>書式の例</h4>
+      <pre>MAGMOM = 4*5.0 8*0.0   # 最初の4原子に5.0 μB、次の8原子に0</pre>
+      <p>非コリニアの場合は各原子に3成分（x y z）を指定：</p>
+      <pre>MAGMOM = 0 0 5.0  0 0 5.0  0 0 0</pre>
+      <div class="warn-box"><strong>収束の注意:</strong> 初期磁気モーメントが合理的でないと SCF がゼロ磁化の状態や別の磁気秩序に収束してしまうことがある。特に FM/AFM の選別は慎重に。</div>
+    `,
+    related: ['ISPIN', 'LSORBIT']
+  },
+
+  LSORBIT: {
+    wiki: 'https://vasp.at/wiki/LSORBIT',
+    syntax: 'LSORBIT = [logical]   (デフォルト: .FALSE.)',
+    content: `
+      <p><code>.TRUE.</code> でスピン軌道結合（SOC）を有効化する。重元素（Pt, W, Bi, Pb 等）やトポロジカル材料の計算に必須。</p>
+      <h4>必要な追加設定</h4>
+      <p>SOC 有効時は自動的に <code>LNONCOLLINEAR=.TRUE.</code> が設定される。</p>
+      <pre>LSORBIT = .TRUE.
+SAXIS   = 0 0 1    # スピン量子化軸
+ISPIN   = 2        # スピン分極と組み合わせる場合</pre>
+      <div class="warn-box"><strong>計算コスト:</strong> 非コリニアスピノル（2 成分）の波動関数を扱うため、SOC なしの約 4 倍のコストになる。</div>
+    `,
+    related: ['SAXIS', 'ISPIN', 'MAGMOM']
+  },
+
+  SAXIS: {
+    wiki: 'https://vasp.at/wiki/SAXIS',
+    syntax: 'SAXIS = [real] [real] [real]   (デフォルト: 0 0 1)',
+    content: `
+      <p>SOC 計算でのスピン量子化軸の方向ベクトルを指定する。LSORBIT=.TRUE. のときのみ有効。</p>
+      <h4>使い方</h4>
+      <p>デフォルトは z 方向 <code>0 0 1</code>。面内磁化を計算したい場合は <code>1 0 0</code> などに変える。</p>
+      <div class="warn-box"><strong>磁気異方性エネルギー（MAE）:</strong> 異なる SAXIS で計算した全エネルギーの差が MAE に対応する。同一の k 点メッシュ・SIGMA を使うこと。</div>
+    `,
+    related: ['LSORBIT', 'MAGMOM']
+  },
+
+  GGA: {
+    wiki: 'https://vasp.at/wiki/GGA',
+    syntax: 'GGA = [string]   (デフォルト: POTCAR に依存)',
+    content: `
+      <p>交換相関汎関数の種類を指定する。明示しない場合は POTCAR に記録されている汎関数が使われる。</p>
+      <h4>主な値</h4>
+      <p><code>PE</code>: PBE（最も広く使われる GGA 汎関数）<br>
+         <code>PS</code>: PBEsol（固体の格子定数精度が改善された PBE 改訂版）<br>
+         <code>AM</code>: AM05<br>
+         <code>91</code>: PW91（旧来の汎関数）</p>
+      <div class="warn-box"><strong>PBE vs PBEsol:</strong> バルク格子定数は PBEsol の方が実験値に近いことが多い。ただし表面エネルギーや分子では PBE の方が良い場合もある。POTCAR との整合性に注意。</div>
+    `,
+    related: ['AEXX', 'HFSCREEN']
+  },
+
+  LDAU: {
+    wiki: 'https://vasp.at/wiki/LDAU',
+    syntax: 'LDAU = [logical]   (デフォルト: .FALSE.)',
+    content: `
+      <p><code>.TRUE.</code> で DFT+U 計算を有効化する。遷移金属 d 電子・希土類 f 電子など、通常の GGA では電子の局在を過小評価する系に使う。</p>
+      <h4>必要なセット</h4>
+      <pre>LDAU     = .TRUE.
+LDAUTYPE = 2       # Dudarev 形式が最も一般的
+LDAUL    = -1 2 -1 # 各元素の l 量子数（-1=無効, 2=d電子）
+LDAUU    = 0  4  0 # U 値 (eV)
+LDAUJ    = 0  0  0 # Dudarev 形式では通常 0</pre>
+      <div class="warn-box"><strong>U 値の選択:</strong> U は第一原理的に一意に定まらない。文献値・実験値（格子定数、磁気モーメント、バンドギャップ）と比較して決定する。</div>
+    `,
+    related: ['LDAUTYPE', 'LDAUU']
+  },
+
+  LDAUTYPE: {
+    wiki: 'https://vasp.at/wiki/LDAUTYPE',
+    syntax: 'LDAUTYPE = [integer]   (デフォルト: 2)',
+    content: `
+      <p>DFT+U の実装形式を選択する。</p>
+      <p><code>1</code>: Liechtenstein 形式。U と J を独立して指定（LDAUU, LDAUJ の両方が意味を持つ）<br>
+         <code>2</code>: Dudarev 形式（推奨）。有効パラメータは U-J のみ。LDAUJ は通常 0</p>
+      <div class="warn-box"><strong>文献引用の注意:</strong> 論文で「U=4 eV」と報告されている場合、どの形式を使ったかを確認すること。Dudarev では U_eff = U-J を入力する場合と U のみ入力する場合で結果が変わる。</div>
+    `,
+    related: ['LDAU', 'LDAUU']
+  },
+
+  LDAUU: {
+    wiki: 'https://vasp.at/wiki/LDAUU',
+    syntax: 'LDAUU = [real list]   (単位: eV)',
+    content: `
+      <p>DFT+U の U 値を種ごとに指定する。POSCAR の元素順序に合わせてスペース区切りで列挙する。</p>
+      <h4>例（Fe&#x2082;O&#x2083; の場合）</h4>
+      <pre>LDAUU = 4.0 0.0   # Fe: 4 eV, O: 0 eV</pre>
+      <p>+U を適用しない元素には 0 を設定する。</p>
+      <div class="warn-box"><strong>注意:</strong> LDAUL で l=-1 を設定した元素は LDAUU の値にかかわらず +U が無効になる。LDAUL と整合させること。</div>
+    `,
+    related: ['LDAU', 'LDAUTYPE']
+  },
+
+  HFSCREEN: {
+    wiki: 'https://vasp.at/wiki/HFSCREEN',
+    syntax: 'HFSCREEN = [real]   (単位: &Aring;&#x207B;&sup1;)',
+    content: `
+      <p>ハイブリッド汎関数（HSE）における交換相互作用のスクリーニング長を指定する。</p>
+      <h4>典型値</h4>
+      <p><code>0.2</code> &Aring;&#x207B;&sup1;: HSE06 の定義値。最も広く使われる<br>
+         <code>0.0</code>: スクリーニングなし = PBE0 に相当</p>
+      <pre>HFSCREEN = 0.2
+AEXX     = 0.25   # HSE06 の標準設定</pre>
+      <div class="warn-box"><strong>計算コスト:</strong> ハイブリッド汎関数は通常 GGA の 10&ndash;100 倍程度計算コストが高い。ALGO=All または Damped が収束しやすい。</div>
+    `,
+    related: ['AEXX', 'ALGO']
+  },
+
+  AEXX: {
+    wiki: 'https://vasp.at/wiki/AEXX',
+    syntax: 'AEXX = [real]   (デフォルト: 0.0)',
+    content: `
+      <p>ハイブリッド汎関数における Hartree-Fock（正確な交換）の混合率を指定する。</p>
+      <h4>典型値</h4>
+      <p><code>0.25</code>: HSE06 / PBE0 の標準設定（25% の HF 交換）<br>
+         <code>0.0</code>: 純粋な GGA（ハイブリッド無効）</p>
+      <div class="warn-box"><strong>バンドギャップとの関係:</strong> AEXX を大きくするとバンドギャップが広がる傾向がある。実験値に合わせて調整する "tuned hybrid" として使われることもある。</div>
+    `,
+    related: ['HFSCREEN', 'ALGO']
+  },
+
+  LORBIT: {
+    wiki: 'https://vasp.at/wiki/LORBIT',
+    syntax: 'LORBIT = [integer]   (デフォルト: 0)',
+    content: `
+      <p>射影 DOS（DOSCAR）および PROCAR の出力フォーマットを制御する。</p>
+      <h4>主な値</h4>
+      <p><code>10</code>: l 成分分解 DOS（lm 分解なし）<br>
+         <code>11</code>: lm 成分分解 DOS（m 量子数まで分解）← <strong>最もよく使う</strong><br>
+         <code>12</code>: lm 成分 + 位相（バンド変換やスピンテクスチャ解析に必要）<br>
+         <code>&nbsp;0</code>: 投影なし（全 DOS のみ）</p>
+      <div class="warn-box"><strong>RWIGS との関係:</strong> LORBIT &lt; 10 の場合は Wigner-Seitz 半径（RWIGS）の設定が必要。LORBIT &ge; 10 では RWIGS 不要で PAW 球内投影になる。</div>
+    `,
+    related: ['NEDOS', 'ISMEAR', 'SIGMA']
+  },
+
+  NEDOS: {
+    wiki: 'https://vasp.at/wiki/NEDOS',
+    syntax: 'NEDOS = [integer]   (デフォルト: 301)',
+    content: `
+      <p>DOSCAR のエネルギーグリッド点数を指定する。多いほど DOS が滑らかになるがファイルサイズが増える。</p>
+      <h4>推奨値</h4>
+      <p>標準: <code>1000</code> &ndash; <code>2000</code>。精細なピーク構造を見たい場合は <code>5000</code> 以上も使われる。</p>
+      <div class="warn-box"><strong>計算コストへの影響:</strong> NEDOS は SCF のコストに直接影響しない（DOS の後処理ステップのみ）。大きめに設定しても計算時間は変わらない。</div>
+    `,
+    related: ['LORBIT', 'ISMEAR', 'SIGMA']
+  },
+
+  LWAVE: {
+    wiki: 'https://vasp.at/wiki/LWAVE',
+    syntax: 'LWAVE = [logical]   (デフォルト: .TRUE.)',
+    content: `
+      <p>波動関数ファイル（WAVECAR）を出力するかどうかを制御する。WAVECAR は SCF の最終波動関数を含み、後続計算の初期値として再利用できる。</p>
+      <h4>典型的な使い方</h4>
+      <p><code>.TRUE.</code>: 後続計算（バンド構造・DOSの精密化）で WAVECAR を再利用したい場合<br>
+         <code>.FALSE.</code>: ディスク容量を節約したい場合（大系では数 GB&ndash;数十 GB になる）</p>
+    `,
+    related: ['LCHARG']
+  },
+
+  LCHARG: {
+    wiki: 'https://vasp.at/wiki/LCHARG',
+    syntax: 'LCHARG = [logical]   (デフォルト: .TRUE.)',
+    content: `
+      <p>電荷密度ファイル（CHGCAR, CHG）を出力するかどうかを制御する。CHGCAR は電荷密度の可視化やバンド構造計算（ICHARG=11）での再利用に使う。</p>
+      <h4>典型的な使い方</h4>
+      <p><code>.TRUE.</code>: バンド計算の前処理（SCF）で CHGCAR を保存する場合<br>
+         <code>.FALSE.</code>: ディスク容量を節約。バンド計算の本番ステップでは不要なことが多い</p>
+      <div class="warn-box"><strong>ICHARG=11 との組み合わせ:</strong> バンド構造計算では「SCF &rarr; ICHARG=11 のバンド計算」という2ステップが基本。SCF ステップで LCHARG=.TRUE. にしておく必要がある。</div>
+    `,
+    related: ['LWAVE']
+  },
+
+  NWRITE: {
+    wiki: 'https://vasp.at/wiki/NWRITE',
+    syntax: 'NWRITE = [integer]   (デフォルト: 2)',
+    content: `
+      <p>OUTCAR への出力詳細度を制御する。</p>
+      <p><code>0</code>: 最小限の出力（ディスク I/O が少ない）<br>
+         <code>1</code>: 中程度<br>
+         <code>2</code>: 標準（通常はこれで十分）<br>
+         <code>3</code>: 非常に詳細（デバッグ時に使う）<br>
+         <code>4</code>: 最大詳細（大量の出力）</p>
+    `,
+    related: []
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.tag-row').forEach(row => {
+    const tagName = row.dataset.tag;
+    if (!tagDetails[tagName]) return;
+
+    row.addEventListener('click', () => {
+      const next = row.nextElementSibling;
+      if (next && next.classList.contains('detail-row')) {
+        next.remove();
+        row.classList.remove('open');
+        return;
+      }
+
+      const d = tagDetails[tagName];
+      const tr = document.createElement('tr');
+      tr.className = 'detail-row';
+      const td = document.createElement('td');
+      td.colSpan = 3;
+
+      const relatedHtml = (d.related && d.related.length)
+        ? `<div class="related">関連タグ: ${d.related.map(t => `<code>${t}</code>`).join(' / ')}</div>`
+        : '';
+
+      td.innerHTML = `<div class="detail-content">
+        <div class="detail-head">
+          <span class="tag-name">${tagName}</span>
+          <a class="wiki-link" href="${d.wiki}" target="_blank" rel="noopener"
+             onclick="event.stopPropagation()">VASP Wiki ↗</a>
+        </div>
+        <div class="syntax-box">${d.syntax}</div>
+        ${d.content}
+        ${relatedHtml}
+      </div>`;
+
+      tr.appendChild(td);
+      row.after(tr);
+      row.classList.add('open');
+    });
+  });
+});
+</script>
 
 </body>
 </html>
