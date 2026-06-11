@@ -117,11 +117,6 @@
     <tr class="tag-row" data-tag="NSW"><td>NSW <span class="tag-indicator">▶</span></td><td>イオン最適化のステップ数。0 で静的計算</td><td>0 / 100</td></tr>
     <tr class="tag-row" data-tag="IBRION"><td>IBRION <span class="tag-indicator">▶</span></td><td>イオン更新アルゴリズム。2: CG、3: damped MD、-1: 固定</td><td>2</td></tr>
     <tr class="tag-row" data-tag="ISIF"><td>ISIF <span class="tag-indicator">▶</span></td><td>体積・形状の最適化フラグ。2: 原子位置のみ、3: 全最適化</td><td>2 / 3</td></tr>
-  </table>
-
-  <h2 class="font-serif">格子・セル制御</h2>
-  <table>
-    <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
     <tr class="tag-row" data-tag="LATTICE_CONSTRAINTS"><td>LATTICE_CONSTRAINTS <span class="tag-indicator">▶</span></td><td>格子ベクトルの変化を方向ごとに制限する。2D材料や液体 NpT-MD に有用</td><td>.TRUE. .TRUE. .FALSE.</td></tr>
   </table>
 
@@ -173,19 +168,37 @@
   </table>
 
   <h2 class="font-serif">バンド構造計算用 INCAR 例</h2>
-  <pre>SYSTEM = band structure calc
+  <pre>
+SYSTEM = band structure calc
 ENCUT  = 500
-PREC   = Normal
+PREC   = Accurate
 EDIFF  = 1E-6
+
 NSW    = 0
 IBRION = -1
+GGA = PE
+ISIF = 8
+EDIFFG = -0.01
+IVDW = 12 
 
 ISMEAR = 0
 SIGMA  = 0.05
 
+ICHARG = 2
+ISTART = 0
+
+ISPIN = 1
 LORBIT = 11
 LWAVE  = .FALSE.
-LCHARG = .FALSE.</pre>
+LCHARG = .FALSE.
+
+ISYM = 2
+LREAL = .FALSE.
+ADDGRID = .TRUE.
+GGA_COMPAT = .FALSE.
+LASPH = .TRUE.
+
+</pre>
 
   <div class="note">
     バンド計算では事前にSCF計算で CHGCAR を作成し、本計算で <code>ICHARG = 11</code>（電荷密度を固定）を指定する。KPOINTS には高対称点パスを手書きか vaspkit/pymatgen で生成する。
@@ -233,7 +246,6 @@ const tagDetails = {
       <p><code>0</code>: 初期波動関数から電荷密度を計算（ISTART=1,2 のデフォルト）<br>
          <code>1</code>: CHGCAR を読んで使用（継続計算・再起動）<br>
          <code>2</code>: 原子の電荷密度を重ね合わせた初期値（ISTART=0 のデフォルト。速くて安定）<br>
-         <code>10</code>: 電荷密度を完全に固定（非自己無撞着計算）<br>
          <code>11</code>: CHGCAR を読んで固定 ← <strong>バンド構造計算で必須</strong></p>
       <div class="warn-box"><strong>バンド計算の 2 ステップ:</strong> SCF で <code>LCHARG = .TRUE.</code> にして CHGCAR を作成 → バンド計算で <code>ICHARG = 11</code> + line mode KPOINTS を使う。</div>
     `,
@@ -320,15 +332,11 @@ const tagDetails = {
     content: `
       <p>構造最適化において何を緩和・計算するかを決定するフラグ。応力テンソルの計算とセルの形状・体積更新を個別に制御する。</p>
       <h4>ISIF 値と意味</h4>
-      <p><code>0</code>: 力のみ計算、応力テンソル未計算、セル変化なし<br>
-         <code>1</code>: 力 + 応力テンソルのトレースのみ<br>
+      <p><code>0</code>: 力のみ計算、応力テンソル未計算、セル変化なし← <strong>MD専用</strong><br>
          <code>2</code>: 力 + 応力テンソル全成分（セルは変化させない）← <strong>通常の原子位置最適化</strong><br>
          <code>3</code>: 力 + 応力 + セル形状・体積 ← <strong>全最適化</strong><br>
-         <code>4</code>: 力 + 応力 + セル形状（体積固定）<br>
-         <code>5</code>: 応力 + セル形状・体積（原子位置固定）<br>
-         <code>6</code>: 応力 + セル形状（体積固定、原子位置固定）<br>
-         <code>7</code>: 体積のみ緩和（形状・原子位置固定）</p>
-      <div class="warn-box"><strong>スラブ計算:</strong> 通常 ISIF=2（セル固定）を使う。ISIF=3 にすると真空層まで縮む可能性がある。</div>
+         <code>8</code>: 体積 + 原子位置(形状固定) ← <strong>角度保全で対称性keep</strong></p>
+      <div class="warn-box"><strong>スラブ(界面)計算:</strong> 通常 ISIF=2（セル固定）を使う。ISIF=3 にすると真空層まで縮む可能性がある。</div>
     `,
     related: ['IBRION', 'NSW', 'LATTICE_CONSTRAINTS']
   },
