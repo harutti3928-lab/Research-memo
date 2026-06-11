@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>INCARタグまとめ — VASP</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      background-color: #fcfbfa; color: #2c2a29;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      line-height: 1.9; -webkit-font-smoothing: antialiased;
+    }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 740px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 1px; }
+    main { max-width: 740px; margin: 0 auto; padding: 52px 24px 100px; }
+    h2 {
+      font-size: 13pt; font-weight: 600; color: #2c2a29;
+      margin: 48px 0 20px; letter-spacing: 0.8px;
+      position: relative; display: inline-block;
+    }
+    h2::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 1px; background-color: #2c2a29; }
+    h3 { font-size: 11pt; font-weight: 600; color: #3a3836; margin: 28px 0 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .note { background: #f5f3ef; border-left: 3px solid #b0a898; padding: 14px 18px; margin: 24px 0; font-size: 10pt; color: #4a4845; border-radius: 0 4px 4px 0; }
+    code { font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 18px 20px; border-radius: 4px; font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; overflow-x: auto; margin: 20px 0; line-height: 1.7; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 10pt; }
+    th { text-align: left; padding: 10px 14px; background: #f0ede8; border-bottom: 2px solid #dedad5; font-weight: 600; letter-spacing: 0.5px; }
+    td { padding: 10px 14px; border-bottom: 1px solid #ece9e4; vertical-align: top; }
+    td:first-child { font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; color: #3a5a8a; white-space: nowrap; }
+    tr:last-child td { border-bottom: none; }
+    footer { max-width: 740px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../index.html">研究メモ</a> &rsaquo; <a href="../index.html#vasp">VASP</a></div>
+  <h1 class="font-serif">INCARタグまとめ</h1>
+  <p class="font-serif">— よく使うタグと設定の目安 —</p>
+</header>
+
+<main>
+
+  <h2 class="font-serif">基本設定</h2>
+  <table>
+    <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
+    <tr><td>SYSTEM</td><td>計算の説明文（任意）</td><td>自由記述</td></tr>
+    <tr><td>ENCUT</td><td>平面波カットオフエネルギー（eV）。POTCAR の ENMAX の 1.3 倍が目安</td><td>400–600</td></tr>
+    <tr><td>EDIFF</td><td>SCF 収束判定のエネルギー閾値（eV）</td><td>1E-6</td></tr>
+    <tr><td>EDIFFG</td><td>構造最適化の収束判定。負値にするとイオン力の閾値（eV/Å）</td><td>-0.01</td></tr>
+    <tr><td>NSW</td><td>イオン最適化のステップ数。0 で静的計算</td><td>0 / 100</td></tr>
+    <tr><td>IBRION</td><td>イオン更新アルゴリズム。2: CG、3: damped MD、-1: 固定</td><td>2</td></tr>
+    <tr><td>ISIF</td><td>体積・形状の最適化フラグ。2: 原子位置のみ、3: 全最適化</td><td>2 / 3</td></tr>
+  </table>
+
+  <h2 class="font-serif">電子構造・収束設定</h2>
+  <table>
+    <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
+    <tr><td>ISMEAR</td><td>スメアリング手法。金属: 1（Methfessel-Paxton）、絶縁体: 0（Gaussian）、DOS: -5（テトラへドロン）</td><td>1 / 0 / -5</td></tr>
+    <tr><td>SIGMA</td><td>スメアリング幅（eV）。小さすぎると収束不安定</td><td>0.1–0.2</td></tr>
+    <tr><td>NELM</td><td>SCF 最大ループ数</td><td>100–200</td></tr>
+    <tr><td>NELMIN</td><td>SCF 最小ループ数（初期振動を防ぐ）</td><td>6</td></tr>
+    <tr><td>ALGO</td><td>電子最適化アルゴリズム。Normal: RMM-DIIS、Fast: RMM+DIAG、All: blocked Davidson</td><td>Normal / Fast</td></tr>
+    <tr><td>PREC</td><td>計算精度プリセット。Normal で大半は OK、Accurate で FFT グリッド倍密度</td><td>Normal / Accurate</td></tr>
+    <tr><td>LREAL</td><td>実空間射影。Auto: 自動選択（大系では True が速い）</td><td>Auto</td></tr>
+  </table>
+
+  <h2 class="font-serif">スピン・磁性</h2>
+  <table>
+    <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
+    <tr><td>ISPIN</td><td>スピン分極計算。1: 非スピン分極、2: スピン分極</td><td>1 / 2</td></tr>
+    <tr><td>MAGMOM</td><td>各原子の初期磁気モーメント（μB）</td><td>例: 3 0 0</td></tr>
+    <tr><td>LSORBIT</td><td>.TRUE. でスピン軌道結合 (SOC) を有効化</td><td>.TRUE.</td></tr>
+    <tr><td>SAXIS</td><td>SOC での量子化軸方向</td><td>0 0 1</td></tr>
+  </table>
+
+  <h2 class="font-serif">汎関数・ハイブリッド・DFT+U</h2>
+  <table>
+    <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
+    <tr><td>GGA</td><td>交換相関汎関数の種類。PE: PBE、PS: PBEsol</td><td>PE</td></tr>
+    <tr><td>LDAU</td><td>.TRUE. で DFT+U を有効化</td><td>.TRUE.</td></tr>
+    <tr><td>LDAUTYPE</td><td>+U の形式。2: Dudarev (単一 U-J パラメータ)</td><td>2</td></tr>
+    <tr><td>LDAUU</td><td>各種の U 値（eV）</td><td>例: 0 4 0</td></tr>
+    <tr><td>HFSCREEN</td><td>HSE06 のスクリーニング長。0.2 Å⁻¹ が HSE06</td><td>0.2</td></tr>
+    <tr><td>AEXX</td><td>交換汎関数の HF 混合率。HSE06: 0.25</td><td>0.25</td></tr>
+  </table>
+
+  <h2 class="font-serif">出力制御</h2>
+  <table>
+    <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
+    <tr><td>LORBIT</td><td>投影 DOS の出力。11: l 成分あり、10: なし</td><td>11</td></tr>
+    <tr><td>NEDOS</td><td>DOS のエネルギーグリッド数</td><td>2000</td></tr>
+    <tr><td>LWAVE</td><td>.FALSE. で WAVECAR の出力を抑制（ディスク節約）</td><td>.FALSE.</td></tr>
+    <tr><td>LCHARG</td><td>.FALSE. で CHGCAR 出力を抑制</td><td>.FALSE.</td></tr>
+    <tr><td>NWRITE</td><td>OUTCAR への出力頻度。0: 最小限、2: 標準</td><td>2</td></tr>
+  </table>
+
+  <h2 class="font-serif">バンド構造計算用 INCAR 例</h2>
+  <pre>SYSTEM = band structure calc
+ENCUT  = 500
+PREC   = Normal
+EDIFF  = 1E-6
+NSW    = 0
+IBRION = -1
+
+ISMEAR = 0
+SIGMA  = 0.05
+
+LORBIT = 11
+LWAVE  = .FALSE.
+LCHARG = .FALSE.</pre>
+
+  <div class="note">
+    バンド計算では事前にSCF計算で CHGCAR を作成し、本計算で <code>ICHARG = 11</code>（電荷密度を固定）を指定する。KPOINTS には高対称点パスを手書きか vaspkit/pymatgen で生成する。
+  </div>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ</p>
+</footer>
+
+</body>
+</html>

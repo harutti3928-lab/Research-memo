@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tc の見積もり — Eliashberg方程式</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background-color: #fcfbfa; color: #2c2a29; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; line-height: 1.9; -webkit-font-smoothing: antialiased; }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 740px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 1px; }
+    main { max-width: 740px; margin: 0 auto; padding: 52px 24px 100px; }
+    h2 { font-size: 13pt; font-weight: 600; color: #2c2a29; margin: 48px 0 20px; letter-spacing: 0.8px; position: relative; display: inline-block; }
+    h2::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 1px; background-color: #2c2a29; }
+    h3 { font-size: 11pt; font-weight: 600; color: #3a3836; margin: 28px 0 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .note { background: #f5f3ef; border-left: 3px solid #b0a898; padding: 14px 18px; margin: 24px 0; font-size: 10pt; color: #4a4845; border-radius: 0 4px 4px 0; }
+    .warn { background: #fdf6ec; border-left: 3px solid #c9a04a; padding: 14px 18px; margin: 24px 0; font-size: 10pt; color: #5a4820; border-radius: 0 4px 4px 0; }
+    code { font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 18px 20px; border-radius: 4px; font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; overflow-x: auto; margin: 20px 0; line-height: 1.7; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 10pt; }
+    th { text-align: left; padding: 10px 14px; background: #f0ede8; border-bottom: 2px solid #dedad5; font-weight: 600; letter-spacing: 0.5px; }
+    td { padding: 10px 14px; border-bottom: 1px solid #ece9e4; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    footer { max-width: 740px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../index.html">研究メモ</a> &rsaquo; <a href="../index.html#eliashberg">Eliashberg方程式</a></div>
+  <h1 class="font-serif">Tc の見積もり</h1>
+  <p class="font-serif">— McMillan 式・Allen-Dynes 式と μ* —</p>
+</header>
+
+<main>
+
+  <h2 class="font-serif">McMillan 式（1968）</h2>
+  <p>Eliashberg 方程式を近似的に解いて得られる解析式：</p>
+  <pre>Tc = (ω_D / 1.45) exp[ -1.04(1 + λ) / (λ - μ*(1 + 0.62λ)) ]
+
+ω_D : デバイ周波数（K 単位）
+λ   : 電子–フォノン結合定数
+μ*  : クーロン擬ポテンシャル（0.1–0.15 が典型値）</pre>
+  <p>λ ≲ 1.5 の範囲で比較的正確だが、強結合（λ > 1.5）では過小評価する。また ω_D の代わりに対数平均 ω_log を使う変形版もある。</p>
+
+  <h2 class="font-serif">Allen-Dynes 式（1975）</h2>
+  <p>McMillan 式を強結合に拡張した、より精度の高い表式：</p>
+  <pre>Tc = (f₁ f₂ ω_log / 1.20) exp[ -1.04(1 + λ) / (λ - μ*(1 + 0.62λ)) ]
+
+強結合補正因子：
+  f₁ = [1 + (λ/Λ₁)^(3/2)]^(1/3)
+  f₂ = 1 + (ω₂/ω_log - 1) × λ² / (λ² + Λ₂²)
+
+  Λ₁ = 2.46(1 + 3.8μ*)
+  Λ₂ = 1.82(1 + 6.3μ*)(ω₂/ω_log)
+
+  ω₂ = √[ 2 ∫₀^∞ dω α²F(ω) ω ]  ← 二乗平均フォノン周波数</pre>
+  <p>f₁、f₂ は λ → 0 で 1 に近づき、McMillan 式に帰着する。強結合ではこれらが Tc を引き上げる補正として機能する。</p>
+
+  <h2 class="font-serif">クーロン擬ポテンシャル μ*</h2>
+  <h3>物理的意味</h3>
+  <p>電子間のクーロン斥力は超伝導ペアリングを抑制する。しかしフォノンの時間スケール（ω_D⁻¹）と電子のそれ（E_F⁻¹）の違いにより、実効的な斥力（μ*）は裸のクーロン定数 μ より小さくなる：</p>
+  <pre>μ* = μ / [1 + μ ln(E_F / ω_D)]
+
+典型的な値：
+  金属    : μ* ≈ 0.10–0.15
+  高圧水素: μ* ≈ 0.10–0.13（理論的にはやや不定）</pre>
+
+  <h3>μ* の扱い方</h3>
+  <div class="warn">
+    μ* は cRPA（constrained RPA）で原理的に計算できるが、実用的には文献の典型値（0.10–0.15）を使うことが多い。μ* の不定性が Tc の見積もりに ±数 K の誤差をもたらすことに注意。
+  </div>
+
+  <h2 class="font-serif">各手法の比較</h2>
+  <table>
+    <tr><th>手法</th><th>精度</th><th>計算コスト</th><th>適用範囲</th></tr>
+    <tr><td>McMillan 式</td><td>低〜中（λ ≲ 1.5）</td><td>非常に低い</td><td>弱〜中結合</td></tr>
+    <tr><td>Allen-Dynes 式</td><td>中〜高</td><td>低い</td><td>弱〜強結合</td></tr>
+    <tr><td>Eliashberg 方程式（数値解）</td><td>高</td><td>中程度</td><td>全結合域</td></tr>
+    <tr><td>ab initio SCDFT</td><td>最高（μ* 不要）</td><td>高い</td><td>汎用（研究段階）</td></tr>
+  </table>
+
+  <h2 class="font-serif">数値 Eliashberg 計算での Tc の求め方</h2>
+  <pre>方法1: 温度スキャン
+  T = T_high から下げていき、Δ(iω₀) が有限になる温度 Tc を探す
+
+方法2: 線形化方程式の固有値問題
+  T = Tc で Eliashberg 方程式を線形化すると固有値問題になる：
+  Δ(iωₙ) = Σ_{n'} K(n, n') Δ(iωₙ')
+
+  最大固有値 = 1 となる T が Tc
+
+方法2 の方が計算効率が高く、Tc 近傍での不安定性を直接調べられる</pre>
+
+  <div class="note">
+    Allen-Dynes 式は λ・ω_log・μ* の3つのパラメータだけから Tc を素早く見積もれるため、第一原理計算のスクリーニングに最適。詳細な超伝導特性（ギャップの温度依存性、準粒子寿命など）が必要な場合に数値 Eliashberg 計算を行う。
+  </div>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ</p>
+</footer>
+
+</body>
+</html>

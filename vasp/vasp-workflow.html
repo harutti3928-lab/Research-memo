@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>計算の流れ — VASP</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background-color: #fcfbfa; color: #2c2a29; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; line-height: 1.9; -webkit-font-smoothing: antialiased; }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 740px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 1px; }
+    main { max-width: 740px; margin: 0 auto; padding: 52px 24px 100px; }
+    h2 { font-size: 13pt; font-weight: 600; color: #2c2a29; margin: 48px 0 20px; letter-spacing: 0.8px; position: relative; display: inline-block; }
+    h2::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 1px; background-color: #2c2a29; }
+    h3 { font-size: 11pt; font-weight: 600; color: #3a3836; margin: 28px 0 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .note { background: #f5f3ef; border-left: 3px solid #b0a898; padding: 14px 18px; margin: 24px 0; font-size: 10pt; color: #4a4845; border-radius: 0 4px 4px 0; }
+    code { font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 18px 20px; border-radius: 4px; font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; overflow-x: auto; margin: 20px 0; line-height: 1.7; }
+    .step { display: flex; gap: 18px; margin-bottom: 28px; align-items: flex-start; }
+    .step-num { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: #2c2a29; color: #fcfbfa; font-size: 10pt; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .step-body { flex: 1; }
+    .step-body h3 { margin: 0 0 8px; }
+    footer { max-width: 740px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../index.html">研究メモ</a> &rsaquo; <a href="../index.html#vasp">VASP</a></div>
+  <h1 class="font-serif">計算の流れ</h1>
+  <p class="font-serif">— 構造最適化 → 電子構造 → DOS —</p>
+</header>
+
+<main>
+
+  <h2 class="font-serif">ファイル構成の確認</h2>
+  <p>VASP の計算には最低 4 つの入力ファイルが必要。</p>
+  <pre>計算ディレクトリ/
+├── POSCAR   ← 結晶構造（格子定数・原子座標）
+├── INCAR    ← 計算パラメータ
+├── KPOINTS  ← k 点サンプリング設定
+└── POTCAR   ← PAW ポテンシャル（各元素を連結）</pre>
+
+  <h2 class="font-serif">Step 1 : 構造最適化</h2>
+
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <h3>POSCAR の準備</h3>
+      <p>CIF ファイルから pymatgen や VESTA で変換するのが一般的。Direct 座標（分率座標）で記述するのが推奨。</p>
+      <pre>Si_diamond
+   5.47
+   0.5 0.5 0.0
+   0.0 0.5 0.5
+   0.5 0.0 0.5
+Si
+2
+Direct
+  0.00 0.00 0.00
+  0.25 0.25 0.25</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <h3>INCAR の設定（構造最適化用）</h3>
+      <pre>ENCUT  = 500
+EDIFF  = 1E-6
+EDIFFG = -0.01   # 力の閾値 eV/Å
+NSW    = 100
+IBRION = 2       # CG 法
+ISIF   = 3       # セル形状も最適化
+ISMEAR = 1
+SIGMA  = 0.1</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <h3>収束の確認</h3>
+      <p><code>OUTCAR</code> の末尾の "reached required accuracy" を確認。または：</p>
+      <pre>grep "reached required" OUTCAR
+grep "TOTEN" OUTCAR | tail -5</pre>
+      <p>最適化後の構造は <code>CONTCAR</code> に書き出される。次のステップでは CONTCAR を POSCAR に改名して使う。</p>
+    </div>
+  </div>
+
+  <h2 class="font-serif">Step 2 : セルフコンシステント計算 (SCF)</h2>
+  <p>バンド構造・DOS 計算の前に、稠密な k グリッドで SCF を行い CHGCAR を作成する。</p>
+  <pre>INCAR (SCF 用の変更点)
+-----------------------
+NSW    = 0
+IBRION = -1
+ICHARG = 2   # 重ね合わせ電荷密度から開始（デフォルト）
+LCHARG = .TRUE.
+LWAVE  = .FALSE.</pre>
+  <pre>KPOINTS (Monkhorst-Pack)
+-----------------------
+Automatic
+0
+Gamma
+  8 8 8
+  0 0 0</pre>
+
+  <h2 class="font-serif">Step 3 : バンド構造計算</h2>
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-body">
+      <h3>高対称点パスの準備</h3>
+      <p>KPOINTS に line-mode で記述する。pymatgen の <code>HighSymmKpath</code> や vaspkit (option 302) で自動生成できる。</p>
+      <pre>k-points along high symmetry lines
+40         # 各セグメントの分割数
+Line-mode
+Reciprocal
+  0.0 0.0 0.0   ! Γ
+  0.5 0.0 0.0   ! X
+
+  0.5 0.0 0.0   ! X
+  0.5 0.5 0.0   ! M
+...</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-body">
+      <h3>INCAR (バンド計算用)</h3>
+      <pre>NSW    = 0
+ICHARG = 11   # SCF の CHGCAR を読み込み、電荷固定
+LORBIT = 11
+LWAVE  = .FALSE.
+LCHARG = .FALSE.</pre>
+    </div>
+  </div>
+
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-body">
+      <h3>プロット</h3>
+      <p>EIGENVAL と KPOINTS から pymatgen (<code>BSPlotter</code>) や vaspkit でプロットする。</p>
+    </div>
+  </div>
+
+  <h2 class="font-serif">Step 4 : 状態密度 (DOS) 計算</h2>
+  <pre>INCAR (DOS 用)
+--------------
+NSW    = 0
+ICHARG = 11
+ISMEAR = -5   # 改良テトラへドロン法（DOS に適切）
+SIGMA  = 0.1
+LORBIT = 11
+NEDOS  = 2000
+EMIN   = -10
+EMAX   =  10</pre>
+  <p>KPOINTS は SCF より稠密なグリッドを推奨（例: 12×12×12）。出力は <code>DOSCAR</code> および <code>vasprun.xml</code> から読む。</p>
+
+  <div class="note">
+    DOS 計算で <code>ISMEAR = -5</code> にする場合は k グリッドをガンマ中心かつ十分稠密にすること。金属で k 数が少ないと不正確な結果が出る。
+  </div>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ</p>
+</footer>
+
+</body>
+</html>

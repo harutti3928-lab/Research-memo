@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>実装メモ — FLEX計算</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background-color: #fcfbfa; color: #2c2a29; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; line-height: 1.9; -webkit-font-smoothing: antialiased; }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 740px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 1px; }
+    main { max-width: 740px; margin: 0 auto; padding: 52px 24px 100px; }
+    h2 { font-size: 13pt; font-weight: 600; color: #2c2a29; margin: 48px 0 20px; letter-spacing: 0.8px; position: relative; display: inline-block; }
+    h2::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 1px; background-color: #2c2a29; }
+    h3 { font-size: 11pt; font-weight: 600; color: #3a3836; margin: 28px 0 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .note { background: #f5f3ef; border-left: 3px solid #b0a898; padding: 14px 18px; margin: 24px 0; font-size: 10pt; color: #4a4845; border-radius: 0 4px 4px 0; }
+    code { font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 18px 20px; border-radius: 4px; font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; overflow-x: auto; margin: 20px 0; line-height: 1.7; }
+    footer { max-width: 740px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../index.html">研究メモ</a> &rsaquo; <a href="../index.html#flex">FLEX計算</a></div>
+  <h1 class="font-serif">実装メモ</h1>
+  <p class="font-serif">— FFT畳み込み・Padé解析接続・収束判定 —</p>
+</header>
+
+<main>
+
+  <h2 class="font-serif">グリッドの設計</h2>
+  <pre>パラメータ          意味                       典型値
+─────────────────────────────────────────────────────
+Nk × Nk            k 点数（2D 正方格子）       32×32 〜 128×128
+Nω                 松原周波数数                256 〜 2048
+β = 1/T            逆温度                      20 〜 100 (eV⁻¹)
+U                  クーロン相互作用             0.5t 〜 1.5t
+n                  充填率                       0.8 〜 1.0 (half-filling=1)</pre>
+
+  <h2 class="font-serif">FFT による畳み込み</h2>
+  <h3>感受率の計算</h3>
+  <p>Green 関数の積は k 空間で直接やると O(Nk⁴ × Nω²) になるが、FFT を使うと O(Nk² Nω log(Nk² Nω)) まで削減できる。</p>
+  <pre># Python/NumPy での実装イメージ
+import numpy as np
+
+# G(k, iωₙ) の形状: [Nk, Nk, Nω]
+# τ 方向の逆 FFT で G(k, τ) を得る
+G_tau = np.fft.ifft(G_iw, axis=-1).real * beta
+
+# r 空間への FFT
+G_r_tau = np.fft.ifft2(G_tau, axes=(0,1))
+
+# χ₀(r, τ) = -G(r, τ) * G(-r, β-τ)
+chi0_r_tau = -G_r_tau * np.flip(G_r_tau, axis=(0,1,2))
+
+# q 空間・ボソン周波数への FFT
+chi0_q_iOm = np.fft.fft2(chi0_r_tau, axes=(0,1))
+chi0_q_iOm = np.fft.fft(chi0_q_iOm, axis=-1)</pre>
+
+  <h3>高周波成分の扱い</h3>
+  <p>松原周波数の大きい成分で G(iωₙ) ≈ 1/(iωₙ) となる漸近挙動を陽に引き出すことで、数値収束を改善できる：</p>
+  <pre>G(k, iωₙ) = G_asymp(k, iωₙ) + δG(k, iωₙ)
+
+G_asymp = 1/(iωₙ - ξ_k)  ← 解析的に計算
+δG     = G - G_asymp     ← 高周波で急速減衰 → FFT に適する</pre>
+
+  <h2 class="font-serif">Padé 解析接続</h2>
+  <p>松原周波数上の G(iωₙ) から実周波数上の G(ω + iδ) を求める。Padé 近似は低コストだが、ノイズに敏感。</p>
+  <pre># Padé 係数の計算（Vidberg-Serene アルゴリズム）
+def pade_coefficients(z, f):
+    # z = iωₙ の配列, f = G(iωₙ)
+    N = len(z)
+    a = np.zeros(N, dtype=complex)
+    a[0] = f[0]
+    g = f.copy()
+    for i in range(1, N):
+        g_new = np.zeros(N-i, dtype=complex)
+        for j in range(N-i):
+            g_new[j] = (g[j] - g[i]) / ((z[i+j] - z[j]) * g[i])
+        g = g_new
+        a[i] = g[0]
+    return a</pre>
+  <div class="note">
+    Padé は低温（大きい β）で Nω が多いとき精度が出やすい。高温・ノイズが多い場合は最大エントロピー法（MaxEnt）を使う。精度の確認は虚数軸上の G との一致をチェック。
+  </div>
+
+  <h2 class="font-serif">収束判定と混合</h2>
+  <h3>収束判定の指標</h3>
+  <pre>err_G = max |G_new(k, iωₙ) - G_old(k, iωₙ)|
+err_Σ = max |Σ_new(k, iωₙ) - Σ_old(k, iωₙ)|
+
+通常 err_Σ < 1E-5 (eV 単位) を収束の目安とする</pre>
+
+  <h3>線形混合（damping）</h3>
+  <p>振動を防ぐため、新旧 Green 関数を混合してから次のステップに進む：</p>
+  <pre>G_mix = α G_new + (1-α) G_old    # α = 0.2 〜 0.5</pre>
+
+  <h2 class="font-serif">数値的注意点</h2>
+  <ul style="font-size: 10.5pt; padding-left: 20px; line-height: 1.9;">
+    <li>電子数 n の保存：各イテレーションごとに μ を二分法で調整する。</li>
+    <li>Stoner 条件の監視：<code>U * max(χ₀)</code> が 1 に近いと感受率が発散するため、収束前に確認する。</li>
+    <li>τ = 0 / τ = β での G の符号：フェルミオンの反周期性 G(τ+β) = -G(τ) を FFT で正しく扱う。</li>
+    <li>ボソン周波数の和：感受率の松原周波数の数は Green 関数の 2 倍必要（Ωₘ = ωₙ - ωₙ' のレンジ）。</li>
+    <li>メモリ使用量：Nk=64, Nω=1024 の場合、G の配列は約 64×64×1024×16 byte ≈ 67 MB。</li>
+  </ul>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ</p>
+</footer>
+
+</body>
+</html>

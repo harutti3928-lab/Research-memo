@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eliashberg関数 α²F(ω) と λ — Eliashberg方程式</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background-color: #fcfbfa; color: #2c2a29; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; line-height: 1.9; -webkit-font-smoothing: antialiased; }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 740px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 1px; }
+    main { max-width: 740px; margin: 0 auto; padding: 52px 24px 100px; }
+    h2 { font-size: 13pt; font-weight: 600; color: #2c2a29; margin: 48px 0 20px; letter-spacing: 0.8px; position: relative; display: inline-block; }
+    h2::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 1px; background-color: #2c2a29; }
+    h3 { font-size: 11pt; font-weight: 600; color: #3a3836; margin: 28px 0 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .note { background: #f5f3ef; border-left: 3px solid #b0a898; padding: 14px 18px; margin: 24px 0; font-size: 10pt; color: #4a4845; border-radius: 0 4px 4px 0; }
+    code { font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 18px 20px; border-radius: 4px; font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; overflow-x: auto; margin: 20px 0; line-height: 1.7; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 10pt; }
+    th { text-align: left; padding: 10px 14px; background: #f0ede8; border-bottom: 2px solid #dedad5; font-weight: 600; letter-spacing: 0.5px; }
+    td { padding: 10px 14px; border-bottom: 1px solid #ece9e4; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    footer { max-width: 740px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../index.html">研究メモ</a> &rsaquo; <a href="../index.html#eliashberg">Eliashberg方程式</a></div>
+  <h1 class="font-serif">Eliashberg関数 α²F(ω) と λ の計算</h1>
+  <p class="font-serif">— フォノン DOS から第一原理で計算する —</p>
+</header>
+
+<main>
+
+  <h2 class="font-serif">Eliashberg 関数の定義</h2>
+  <p>α²F(ω) はフォノン状態密度 F(ω) と電子–フォノン結合の行列要素 g を組み合わせた量である：</p>
+  <pre>α²F(ω) = (1/N_F) Σ_{k,k',ν} |g_{k,k'}^ν|² δ(ε_k) δ(ε_{k'}) δ(ω - ω_{k'-k,ν})
+
+N_F   : フェルミ面の状態密度
+g     : 電子–フォノン結合行列要素
+ω_{qν}: 波数 q、モード ν のフォノン周波数</pre>
+  <p>F(ω) だけではなく、電子のフェルミ面での結合強度 α² によって重み付けされているため、Tc に寄与するフォノンモードを直接反映する。</p>
+
+  <h2 class="font-serif">電子–フォノン結合定数 λ</h2>
+  <p>α²F(ω) の第一モーメントとして定義される：</p>
+  <pre>λ = 2 ∫₀^∞ dω α²F(ω) / ω
+
+λ < 0.3  : 弱結合（BCS が適用可能）
+λ ~ 1    : 中程度（Eliashberg が重要）
+λ > 1.5  : 強結合（例：Pb: λ ≈ 1.5, H₃S: λ ≈ 2.2）</pre>
+  <p>λ は Tc の大きさと直接対応する。λ が大きいほど Tc も高くなる傾向がある。</p>
+
+  <h2 class="font-serif">対数平均フォノン周波数 ω_log</h2>
+  <p>McMillan / Allen-Dynes 式で使う代表的なフォノン周波数：</p>
+  <pre>ω_log = exp[ (2/λ) ∫₀^∞ dω (α²F(ω)/ω) ln(ω) ]</pre>
+
+  <h2 class="font-serif">第一原理計算による α²F(ω) の計算</h2>
+  <h3>VASP + DFPT の手順</h3>
+  <pre>1. 構造最適化
+2. フォノン計算（IBRION = 6, NFREE = 4 などで変位法）
+   または DFPT（IBRION = 8）
+3. PHON または phonopy でフォノン分散・F(ω) を計算
+4. 電子–フォノン行列要素の計算
+   → vaspkit や EPW（Quantum ESPRESSO）で処理</pre>
+
+  <h3>Quantum ESPRESSO (EPW) の手順</h3>
+  <pre>1. pw.x : 自己無撞着計算（SCF）
+2. ph.x : フォノン計算（DFPT）
+3. q2r.x : 実空間フォノン力定数
+4. matdyn.x : フォノン分散
+5. epw.x : 電子–フォノン Wannier 補間 → α²F(ω) の出力</pre>
+
+  <h2 class="font-serif">代表的な物質の α²F(ω) と λ</h2>
+  <table>
+    <tr><th>物質</th><th>λ</th><th>ω_log (K)</th><th>Tc (K)</th></tr>
+    <tr><td>Al</td><td>0.43</td><td>308</td><td>1.2</td></tr>
+    <tr><td>Pb</td><td>1.55</td><td>56</td><td>7.2</td></tr>
+    <tr><td>Nb</td><td>1.18</td><td>138</td><td>9.2</td></tr>
+    <tr><td>MgB₂</td><td>0.73</td><td>~700</td><td>39</td></tr>
+    <tr><td>H₃S（高圧）</td><td>~2.2</td><td>~1300</td><td>~203</td></tr>
+  </table>
+  <p style="font-size: 9pt; color: #73706c;">MgB₂ は λ が小さいが ω_log が高いため Tc が高い。H₃S は λ・ω_log 双方が大きい。</p>
+
+  <div class="note">
+    α²F(ω) は VESTA などで可視化するよりも、各フォノンモードがどの程度 Tc に寄与しているかを確認するため、モード分解した α²F を確認すると物理的洞察が得られる。例えば MgB₂ では B の面内振動モードが支配的に寄与する。
+  </div>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ</p>
+</footer>
+
+</body>
+</html>

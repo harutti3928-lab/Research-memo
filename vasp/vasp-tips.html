@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>トラブルシューティング・Tips — VASP</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background-color: #fcfbfa; color: #2c2a29; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; line-height: 1.9; -webkit-font-smoothing: antialiased; }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 740px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 1px; }
+    main { max-width: 740px; margin: 0 auto; padding: 52px 24px 100px; }
+    h2 { font-size: 13pt; font-weight: 600; color: #2c2a29; margin: 48px 0 20px; letter-spacing: 0.8px; position: relative; display: inline-block; }
+    h2::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 1px; background-color: #2c2a29; }
+    h3 { font-size: 11pt; font-weight: 600; color: #3a3836; margin: 28px 0 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .note { background: #f5f3ef; border-left: 3px solid #b0a898; padding: 14px 18px; margin: 24px 0; font-size: 10pt; color: #4a4845; border-radius: 0 4px 4px 0; }
+    .warn { background: #fdf6ec; border-left: 3px solid #c9a04a; padding: 14px 18px; margin: 24px 0; font-size: 10pt; color: #5a4820; border-radius: 0 4px 4px 0; }
+    code { font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 18px 20px; border-radius: 4px; font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; overflow-x: auto; margin: 20px 0; line-height: 1.7; }
+    .trouble { border: 1px solid #e6e4e0; border-radius: 6px; padding: 18px 20px; margin-bottom: 24px; }
+    .trouble .symptom { font-size: 10.5pt; font-weight: 600; color: #b57a7a; margin-bottom: 10px; }
+    .trouble .cause { font-size: 10pt; color: #4a4845; margin-bottom: 10px; }
+    .trouble .fix { font-size: 10pt; }
+    footer { max-width: 740px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../index.html">研究メモ</a> &rsaquo; <a href="../index.html#vasp">VASP</a></div>
+  <h1 class="font-serif">トラブルシューティング・Tips</h1>
+  <p class="font-serif">— よくあるエラーと対処法 —</p>
+</header>
+
+<main>
+
+  <h2 class="font-serif">SCF が収束しない</h2>
+
+  <div class="trouble">
+    <div class="symptom">NELM に達しても EDIFF を満たさない</div>
+    <div class="cause">原因: 初期磁気モーメントが不適切、SIGMA が大きすぎる、ALGO の相性</div>
+    <div class="fix">
+      対処:
+      <ul style="margin: 8px 0; padding-left: 20px; font-size: 10pt;">
+        <li>MAGMOM を元素ごとに適切に設定する（遷移金属では 3–5 μB から試す）</li>
+        <li>SIGMA を 0.05–0.1 に下げる</li>
+        <li><code>ALGO = All</code> または <code>ALGO = Damped</code> に切り替える</li>
+        <li><code>AMIX = 0.1</code>, <code>AMIX_MAG = 0.2</code> で混合を安定化させる</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="trouble">
+    <div class="symptom">エネルギーが発散・振動する</div>
+    <div class="cause">原因: ENCUT が低すぎる、初期構造が不合理（原子が近すぎる）</div>
+    <div class="fix">
+      対処:
+      <ul style="margin: 8px 0; padding-left: 20px; font-size: 10pt;">
+        <li>ENCUT を段階的に上げて確認する</li>
+        <li>POSCAR の原子間距離を確認し、重なりがあれば初期構造を修正する</li>
+        <li><code>ISTART = 0</code>, <code>ICHARG = 2</code> で初期化してやり直す</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="font-serif">構造最適化が収束しない</h2>
+
+  <div class="trouble">
+    <div class="symptom">力がゼロにならない・振動している</div>
+    <div class="cause">原因: k グリッドが粗い、EDIFF（電子収束）が緩い</div>
+    <div class="fix">
+      対処:
+      <ul style="margin: 8px 0; padding-left: 20px; font-size: 10pt;">
+        <li>k 点を増やす（特に金属系）</li>
+        <li>EDIFF を 1E-7 以上に締める</li>
+        <li>途中の CONTCAR を POSCAR に使い回して再開する</li>
+        <li>IBRION = 1（quasi-Newton）よりも IBRION = 2（CG）の方が安定することがある</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="font-serif">よくあるエラーメッセージ</h2>
+
+  <div class="trouble">
+    <div class="symptom">WARNING: Sub-Space-Matrix is not hermitian in DAV</div>
+    <div class="cause">原因: 数値誤差。致命的ではないことが多いが、頻出する場合は問題</div>
+    <div class="fix">対処: <code>ALGO = All</code> に変更して完全対角化を使う</div>
+  </div>
+
+  <div class="trouble">
+    <div class="symptom">VERY BAD NEWS! internal error in subroutine IBZKPT</div>
+    <div class="cause">原因: KPOINTS の k 点設定と空間群の対称性が合っていない</div>
+    <div class="fix">対処: KPOINTS を Gamma-centered に変更する、または k 点数を見直す</div>
+  </div>
+
+  <div class="trouble">
+    <div class="symptom">POSCAR and POTCAR are incompatible</div>
+    <div class="cause">原因: POSCAR の元素順と POTCAR の連結順が一致していない</div>
+    <div class="fix">対処: POTCAR を POSCAR の元素順に従って cat で連結し直す</div>
+  </div>
+
+  <div class="trouble">
+    <div class="symptom">EDDDAV: Call to ZHEGV failed.</div>
+    <div class="cause">原因: 対角化に失敗。バンド数不足または数値的問題</div>
+    <div class="fix">対処: <code>NBANDS</code> を増やす（デフォルト + 10〜30%）または ENCUT を下げる</div>
+  </div>
+
+  <h2 class="font-serif">計算を速くする Tips</h2>
+
+  <h3>並列化</h3>
+  <p>NCORE（各ノードあたりの並列コア数）と KPAR（k 点並列数）を設定する。<code>NCORE × KPAR</code> が全コア数を超えないようにする。</p>
+  <pre>NCORE = 8
+KPAR  = 4</pre>
+
+  <h3>WAVECAR の再利用</h3>
+  <p>同系の計算では前の WAVECAR を初期値として使うと SCF ループが大幅に減る。</p>
+  <pre>ISTART = 1   # WAVECAR 読み込み
+ICHARG = 1   # CHGCAR 読み込み</pre>
+
+  <h3>LREAL の使い分け</h3>
+  <p>原子数が多い系（100原子以上）では <code>LREAL = Auto</code> で実空間射影にすると速くなるが、精度がわずかに落ちる。精密計算では <code>LREAL = .FALSE.</code> にする。</p>
+
+  <div class="note">
+    出力の確認は <code>grep "F=" OSZICAR</code>（全エネルギー推移）や <code>grep "TOTEN" OUTCAR | tail</code> が定番。vasprun.xml は pymatgen や ASE で直接読め、後処理が圧倒的に楽。
+  </div>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ</p>
+</footer>
+
+</body>
+</html>

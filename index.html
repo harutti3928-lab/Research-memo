@@ -3,29 +3,26 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHubの使い方メモ</title>
+    <title>研究メモ</title>
     <style>
-      /* 全体のリセットと共通設定 */
       *, *::before, *::after {
         box-sizing: border-box;
       }
-      
+
       body {
         margin: 0;
         padding: 0;
-        background-color: #fcfbfa; /* わずかに温かみのある、上質な書籍の紙のようなオフホワイト */
-        color: #2c2a29; /* 完全に真っ黒ではない、目に優しいトナー（墨色） */
+        background-color: #fcfbfa;
+        color: #2c2a29;
         font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", "ヒラギノ角ゴ ProN W3", Meiryo, sans-serif;
         line-height: 1.8;
         -webkit-font-smoothing: antialiased;
       }
 
-      /* タイトルや見出し用の洗練されたローマン・明朝体フォント */
       .font-serif {
         font-family: "Times New Roman", "Georgia", "Noto Serif JP", "BIZ UDPMincho", serif;
       }
 
-      /* ヘッダーデザイン（シンプルで余白を活かした知的な構成） */
       header {
         max-width: 740px;
         margin: 0 auto;
@@ -50,14 +47,16 @@
         text-transform: uppercase;
       }
 
-      /* メインコンテンツエリア */
       main {
         max-width: 740px;
         margin: 0 auto;
         padding: 60px 24px 100px 24px;
       }
 
-      /* セクション見出し（ミニマルで美しいアンダーライン） */
+      .section {
+        margin-bottom: 60px;
+      }
+
       h2 {
         font-size: 14pt;
         font-weight: 600;
@@ -68,7 +67,7 @@
         position: relative;
         display: inline-block;
       }
-      
+
       h2::after {
         content: '';
         position: absolute;
@@ -79,7 +78,6 @@
         background-color: #2c2a29;
       }
 
-      /* リストとリンクのデザイン（シンプルでありながら心地よいインタラクション） */
       ul {
         list-style: none;
         padding: 0;
@@ -87,16 +85,15 @@
       }
 
       li {
-        margin-bottom: 24px;
+        margin-bottom: 20px;
         border-bottom: 1px solid #f0ede9;
-        padding-bottom: 16px;
+        padding-bottom: 14px;
       }
 
       li:last-child {
         border-bottom: none;
       }
 
-      /* リンク：静かで美しい佇まい。ホバー時に知的なブルーへ変化 */
       li a {
         display: block;
         color: #1a1a1a;
@@ -106,12 +103,35 @@
         transition: color 0.25s ease;
       }
 
-      /* マウスホバー時の挙動 */
       li a:hover {
-        color: #4a69b5; /* 知性を感じさせる落ち着いたブルーグレー */
+        color: #4a69b5;
       }
 
-      /* フッター（学術ブログの美しい静寂感を演出） */
+      li .desc {
+        font-size: 9.5pt;
+        color: #96938f;
+        margin-top: 4px;
+        letter-spacing: 0.3px;
+      }
+
+      .tag {
+        display: inline-block;
+        font-size: 8pt;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: #ffffff;
+        background-color: #8a9ec2;
+        border-radius: 3px;
+        padding: 1px 7px;
+        margin-right: 8px;
+        vertical-align: middle;
+      }
+
+      .tag.green  { background-color: #7aab8a; }
+      .tag.amber  { background-color: #b89a5a; }
+      .tag.rose   { background-color: #b57a7a; }
+
       footer {
         max-width: 740px;
         margin: 0 auto;
@@ -127,26 +147,108 @@
   <body>
 
     <header>
-      <h1 class="font-serif">GitHubの使い方メモ</h1>
-      <p class="font-serif">— Personal Reference Center —</p>
+      <h1 class="font-serif">研究メモ</h1>
+      <p class="font-serif">— Computational Physics Reference —</p>
     </header>
 
     <main>
-      <h2 class="font-serif">ページ一覧</h2>
-      
-      <ul>
-        <li><a href="github-basics.html">GitHubの基本（とは・設定・よく使う操作・用語）</a></li>
-        <li><a href="github-repo.html">GitHubリポジトリの見方</a></li>
-        <li><a href="cursor-to-pages.html">CursorからGitHub Pages公開までの流れ</a></li>
-        <li><a href="html-guide.html">HTMLの書き方まとめ</a></li>
-        <li><a href="shortcuts.html">便利なショートカット一覧</a></li>
-        <li><a href="css-guide.html">CSSについて</a></li>
-        <li><a href="markdown-guide.html">Markdownの書き方と .md ファイルの役割</a></li>
-      </ul>
+
+      <!-- VASP -->
+      <div class="section">
+        <h2 class="font-serif">VASP</h2>
+        <ul>
+          <li>
+            <a href="vasp/vasp-overview.html">VASPとは・基本的な仕組み</a>
+            <div class="desc">DFTの概要、平面波基底、PAW法の考え方</div>
+          </li>
+          <li>
+            <a href="vasp/vasp-incar.html">INCARタグまとめ</a>
+            <div class="desc">よく使うタグ（ENCUT, KPOINTS, EDIFF, ISMEAR など）と設定の目安</div>
+          </li>
+          <li>
+            <a href="vasp/vasp-workflow.html">計算の流れ（構造最適化→電子構造→DOS）</a>
+            <div class="desc">POSCAR/INCAR/KPOINTS/POTCAR の準備から出力解析まで</div>
+          </li>
+          <li>
+            <a href="vasp/vasp-tips.html">トラブルシューティング・Tips</a>
+            <div class="desc">収束しない・SCFが回らない・よくあるエラーへの対処</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- FLEX -->
+      <div class="section">
+        <h2 class="font-serif">FLEX計算</h2>
+        <ul>
+          <li>
+            <a href="flex/flex-overview.html">FLEXとは（Fluctuation Exchange Approximation）</a>
+            <div class="desc">多体摂動論の枠組み、RPA・FLEX の位置づけ</div>
+          </li>
+          <li>
+            <a href="flex/flex-selfenergy.html">自己エネルギーと Green 関数の自己無撞着計算</a>
+            <div class="desc">Dyson 方程式、虚数時間・松原周波数での定式化</div>
+          </li>
+          <li>
+            <a href="flex/flex-susceptibility.html">感受率・有効相互作用の計算</a>
+            <div class="desc">スピン・電荷感受率、バブルダイアグラム、RPA感受率</div>
+          </li>
+          <li>
+            <a href="flex/flex-implementation.html">実装メモ（コード・数値的注意点）</a>
+            <div class="desc">FFTによる畳み込み、Padé解析接続、収束判定の実際</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Wannier90 -->
+      <div class="section">
+        <h2 class="font-serif">Wannier90</h2>
+        <ul>
+          <li>
+            <a href="wannier/wannier-overview.html">Wannier関数とは</a>
+            <div class="desc">Bloch 関数との関係、最局在 Wannier 関数（MLWF）の概念</div>
+          </li>
+          <li>
+            <a href="wannier/wannier-vasp.html">VASP との連携手順</a>
+            <div class="desc">LWANNIER90 フラグ、wannier90.win の書き方、seedname の設定</div>
+          </li>
+          <li>
+            <a href="wannier/wannier-bandinterp.html">バンド補間・有効ハミルトニアン</a>
+            <div class="desc">タイトバインディング展開、k 点の密な補間、Fermi 面の可視化</div>
+          </li>
+          <li>
+            <a href="wannier/wannier-tips.html">ディスエンタングルメント・初期射影のコツ</a>
+            <div class="desc">frozen window / outer window の設定指針、収束しないときの対処</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Eliashberg -->
+      <div class="section">
+        <h2 class="font-serif">Eliashberg方程式</h2>
+        <ul>
+          <li>
+            <a href="eliashberg/eliashberg-overview.html">Eliashberg理論の概要</a>
+            <div class="desc">BCS理論の限界、電子–フォノン結合と強結合超伝導の枠組み</div>
+          </li>
+          <li>
+            <a href="eliashberg/eliashberg-equations.html">Eliashberg方程式の導出と構造</a>
+            <div class="desc">Σ(iωₙ)・Δ(iωₙ) の自己無撞着方程式、Matsubara 形式</div>
+          </li>
+          <li>
+            <a href="eliashberg/eliashberg-a2f.html">Eliashberg関数 α²F(ω) と λ の計算</a>
+            <div class="desc">フォノン DOS からの計算、VASP/Quantum ESPRESSO との接続</div>
+          </li>
+          <li>
+            <a href="eliashberg/eliashberg-tc.html">Tc の見積もり：McMillan式・Allen-Dynes式との比較</a>
+            <div class="desc">強結合補正、μ* (クーロン擬ポテンシャル) の扱い方</div>
+          </li>
+        </ul>
+      </div>
+
     </main>
 
     <footer>
-      <p class="font-serif">&copy; 2026 GitHubの使い方メモ. Powered by Simplicity & Intelligence.</p>
+      <p class="font-serif">&copy; 2026 研究メモ. Computational Physics Reference.</p>
     </footer>
 
   </body>

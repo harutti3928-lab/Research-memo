@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>感受率・有効相互作用 — FLEX計算</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { margin: 0; padding: 0; background-color: #fcfbfa; color: #2c2a29; font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; line-height: 1.9; -webkit-font-smoothing: antialiased; }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 740px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 1px; }
+    main { max-width: 740px; margin: 0 auto; padding: 52px 24px 100px; }
+    h2 { font-size: 13pt; font-weight: 600; color: #2c2a29; margin: 48px 0 20px; letter-spacing: 0.8px; position: relative; display: inline-block; }
+    h2::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 1px; background-color: #2c2a29; }
+    h3 { font-size: 11pt; font-weight: 600; color: #3a3836; margin: 28px 0 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .note { background: #f5f3ef; border-left: 3px solid #b0a898; padding: 14px 18px; margin: 24px 0; font-size: 10pt; color: #4a4845; border-radius: 0 4px 4px 0; }
+    .warn { background: #fdf6ec; border-left: 3px solid #c9a04a; padding: 14px 18px; margin: 24px 0; font-size: 10pt; color: #5a4820; border-radius: 0 4px 4px 0; }
+    code { font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 18px 20px; border-radius: 4px; font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; overflow-x: auto; margin: 20px 0; line-height: 1.7; }
+    footer { max-width: 740px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../index.html">研究メモ</a> &rsaquo; <a href="../index.html#flex">FLEX計算</a></div>
+  <h1 class="font-serif">感受率・有効相互作用の計算</h1>
+  <p class="font-serif">— バブルダイアグラムとRPA感受率 —</p>
+</header>
+
+<main>
+
+  <h2 class="font-serif">バブル（Lindhard）感受率 χ₀</h2>
+  <p>相互作用なしの電子系（または相互作用込みの G を使った場合）のバブルダイアグラムに対応する感受率（polarization）：</p>
+  <pre>χ₀(q, iΩₘ) = -T/N Σ_{k,n} G(k+q, iωₙ+iΩₘ) G(k, iωₙ)</pre>
+  <p>これは k 空間での Green 関数の二体相関を表す。実装上は k 空間と松原周波数の両方で 2D/3D FFT を使って畳み込みとして計算する。</p>
+
+  <h3>計算の手順（FFT を使う場合）</h3>
+  <pre>1. G(k, iωₙ) → G(r, τ) に FFT（k→r, ωₙ→τ）
+
+2. G(r, τ) の実空間・虚数時間での積:
+   χ₀(r, τ) = -G(r, τ) × G(-r, β-τ)
+
+3. χ₀(r, τ) → χ₀(q, iΩₘ) に逆FFT（r→q, τ→Ωₘ）</pre>
+
+  <h2 class="font-serif">RPA感受率</h2>
+  <h3>スピン感受率</h3>
+  <p>スピン揺らぎに対する RPA 感受率は：</p>
+  <pre>χ_s(q, iΩₘ) = χ₀(q, iΩₘ) / [1 - U χ₀(q, iΩₘ)]</pre>
+  <p>分母の <code>1 - U χ₀</code> が 0 に近づく（Stoner 条件に近い）とスピン揺らぎが発散し、磁気秩序や d 波超伝導が促進される。</p>
+
+  <h3>電荷感受率</h3>
+  <pre>χ_c(q, iΩₘ) = χ₀(q, iΩₘ) / [1 + U χ₀(q, iΩₘ)]</pre>
+  <p>電荷の揺らぎはスピンと符号が逆になる（反発的なスクリーニング）。</p>
+
+  <div class="warn">
+    <strong>発散への注意：</strong>U × max[χ₀(q, iΩ=0)] ≥ 1 になるとスピン感受率が発散し、FLEX ループが破綻する。この場合 U を下げるか、より低温では磁気秩序状態として別途扱う必要がある。
+  </div>
+
+  <h2 class="font-serif">Stoner 因子</h2>
+  <p>磁気不安定性の指標として Stoner 因子 S を定義する：</p>
+  <pre>S = U × χ₀(q_max, iΩ=0)
+
+S < 1  → 常磁性状態で FLEX ループが成立
+S → 1  → 磁気不安定性（強磁性 or 反強磁性の境界）</pre>
+  <p>q_max はスピン感受率が最大になる波数ベクトル。<code>q = (π,π)</code> で最大なら反強磁性揺らぎが支配的。</p>
+
+  <h2 class="font-serif">有効相互作用の各チャンネル</h2>
+  <pre>V_spin(q, iΩₘ)   = (3/2) U² χ_s(q, iΩₘ)
+V_charge(q, iΩₘ) = (1/2) U² χ_c(q, iΩₘ)
+V_Hartree        = -U  （ハートリー項のキャンセル）
+
+V_eff = V_spin + V_charge + V_Hartree
+      = (3/2) U² χ_s + (1/2) U² χ_c - U</pre>
+
+  <div class="note">
+    係数 3/2 はスピン 1/2 の多重度（2S+1 = 3）から来る。単バンドハバードモデルの場合の標準的な表式。多バンド系では軌道テンソル構造が加わり係数が変わる。
+  </div>
+
+  <h2 class="font-serif">超伝導ギャップ方程式との接続</h2>
+  <p>有効相互作用 V_eff が超伝導のペアリング相互作用として働く。線形化 Eliashberg 方程式（ギャップ方程式）：</p>
+  <pre>λ φ(k) = -T/N Σ_{k'} V_eff(k-k') |G(k')|² φ(k')
+
+λ ≥ 1 → 超伝導不安定性</pre>
+  <p><code>q = k - k' ≈ (π,π)</code> でのスピン揺らぎが強いとき、φ(k) が d_{x²-y²} 対称性を持つペアリングが実現する（銅酸化物超伝導体の機構として議論される）。</p>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ</p>
+</footer>
+
+</body>
+</html>
