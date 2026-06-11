@@ -109,6 +109,8 @@
   <table>
     <tr><th>タグ</th><th>説明</th><th>典型値</th></tr>
     <tr class="tag-row" data-tag="SYSTEM"><td>SYSTEM <span class="tag-indicator">▶</span></td><td>計算の説明文（任意）</td><td>自由記述</td></tr>
+    <tr class="tag-row" data-tag="ISTART"><td>ISTART <span class="tag-indicator">▶</span></td><td>ジョブの開始モード。0: ゼロから開始、1: WAVECAR を読んで初期値に利用</td><td>0</td></tr>
+    <tr class="tag-row" data-tag="ICHARG"><td>ICHARG <span class="tag-indicator">▶</span></td><td>初期電荷密度の取得方法。2: 原子重ね合わせ（デフォルト）、11: CHGCAR 固定（バンド計算）</td><td>2 / 11</td></tr>
     <tr class="tag-row" data-tag="ENCUT"><td>ENCUT <span class="tag-indicator">▶</span></td><td>平面波カットオフエネルギー（eV）。POTCAR の ENMAX の 1.3 倍が目安</td><td>400–600</td></tr>
     <tr class="tag-row" data-tag="EDIFF"><td>EDIFF <span class="tag-indicator">▶</span></td><td>SCF 収束判定のエネルギー閾値（eV）</td><td>1E-6</td></tr>
     <tr class="tag-row" data-tag="EDIFFG"><td>EDIFFG <span class="tag-indicator">▶</span></td><td>構造最適化の収束判定。負値にするとイオン力の閾値（eV/Å）</td><td>-0.01</td></tr>
@@ -133,6 +135,10 @@
     <tr class="tag-row" data-tag="ALGO"><td>ALGO <span class="tag-indicator">▶</span></td><td>電子最適化アルゴリズム。Normal: RMM-DIIS、Fast: RMM+DIAG、All: blocked Davidson</td><td>Normal / Fast</td></tr>
     <tr class="tag-row" data-tag="PREC"><td>PREC <span class="tag-indicator">▶</span></td><td>計算精度プリセット。Normal で大半は OK、Accurate で FFT グリッド倍密度</td><td>Normal / Accurate</td></tr>
     <tr class="tag-row" data-tag="LREAL"><td>LREAL <span class="tag-indicator">▶</span></td><td>実空間射影。Auto: 自動選択（大系では True が速い）</td><td>Auto</td></tr>
+    <tr class="tag-row" data-tag="ISYM"><td>ISYM <span class="tag-indicator">▶</span></td><td>対称性の使い方。2: PAW 標準（推奨）、-1: 完全無効化</td><td>2</td></tr>
+    <tr class="tag-row" data-tag="ADDGRID"><td>ADDGRID <span class="tag-indicator">▶</span></td><td>.TRUE. で補助グリッドを追加。磁性・d/f 電子系でラップアラウンドエラーを抑制</td><td>.TRUE.</td></tr>
+    <tr class="tag-row" data-tag="GGA_COMPAT"><td>GGA_COMPAT <span class="tag-indicator">▶</span></td><td>PAW 1 中心項の勾配計算方式。.FALSE. が新しく正確な実装</td><td>.FALSE.</td></tr>
+    <tr class="tag-row" data-tag="LASPH"><td>LASPH <span class="tag-indicator">▶</span></td><td>.TRUE. で PAW 1 中心項の非球面補正を有効化。d/f 電子に重要</td><td>.TRUE.</td></tr>
   </table>
 
   <h2 class="font-serif">スピン・磁性</h2>
@@ -153,6 +159,7 @@
     <tr class="tag-row" data-tag="LDAUU"><td>LDAUU <span class="tag-indicator">▶</span></td><td>各種の U 値（eV）</td><td>例: 0 4 0</td></tr>
     <tr class="tag-row" data-tag="HFSCREEN"><td>HFSCREEN <span class="tag-indicator">▶</span></td><td>HSE06 のスクリーニング長。0.2 Å⁻¹ が HSE06</td><td>0.2</td></tr>
     <tr class="tag-row" data-tag="AEXX"><td>AEXX <span class="tag-indicator">▶</span></td><td>交換汎関数の HF 混合率。HSE06: 0.25</td><td>0.25</td></tr>
+    <tr class="tag-row" data-tag="IVDW"><td>IVDW <span class="tag-indicator">▶</span></td><td>van der Waals 分散力補正。12: DFT-D3(BJ)（一般推奨）、0: 無効</td><td>0 / 12</td></tr>
   </table>
 
   <h2 class="font-serif">出力制御</h2>
@@ -202,6 +209,35 @@ const tagDetails = {
       <pre>SYSTEM = Fe3O4 bulk | GGA+U U=4eV | geometry opt</pre>
     `,
     related: []
+  },
+
+  ISTART: {
+    wiki: 'https://vasp.at/wiki/ISTART',
+    syntax: 'ISTART = [integer]   (デフォルト: WAVECAR がなければ 0、あれば 1)',
+    content: `
+      <p>ジョブの開始モードを指定する。</p>
+      <p><code>0</code>: ゼロから開始。WAVECAR を読まない<br>
+         <code>1</code>: WAVECAR を読み初期波動関数として利用。k 点が変わっても使える<br>
+         <code>2</code>: WAVECAR を読み、続きから計算を継続。k 点は変えられない<br>
+         <code>3</code>: WAVECAR を読み、k 点もそこから引き継ぐ</p>
+      <div class="warn-box"><strong>ICHARG との関係:</strong> ISTART=0 なら ICHARG のデフォルトは 2（原子重ね合わせ）。ISTART=1,2 ならデフォルトは 0（波動関数から電荷密度を計算）。明示指定すれば上書きできる。</div>
+    `,
+    related: ['ICHARG', 'LWAVE']
+  },
+
+  ICHARG: {
+    wiki: 'https://vasp.at/wiki/ICHARG',
+    syntax: 'ICHARG = [integer]   (デフォルト: ISTART=0 なら 2、それ以外は 0)',
+    content: `
+      <p>SCF の初期電荷密度をどこから取得するかを指定する。</p>
+      <p><code>0</code>: 初期波動関数から電荷密度を計算（ISTART=1,2 のデフォルト）<br>
+         <code>1</code>: CHGCAR を読んで使用（継続計算・再起動）<br>
+         <code>2</code>: 原子の電荷密度を重ね合わせた初期値（ISTART=0 のデフォルト。速くて安定）<br>
+         <code>10</code>: 電荷密度を完全に固定（非自己無撞着計算）<br>
+         <code>11</code>: CHGCAR を読んで固定 ← <strong>バンド構造計算で必須</strong></p>
+      <div class="warn-box"><strong>バンド計算の 2 ステップ:</strong> SCF で <code>LCHARG = .TRUE.</code> にして CHGCAR を作成 → バンド計算で <code>ICHARG = 11</code> + line mode KPOINTS を使う。</div>
+    `,
+    related: ['ISTART', 'LCHARG']
   },
 
   ENCUT: {
@@ -301,30 +337,15 @@ const tagDetails = {
     wiki: 'https://vasp.at/wiki/LATTICE_CONSTRAINTS',
     syntax: 'LATTICE_CONSTRAINTS = [logical] [logical] [logical]',
     content: `
-      <p>3つの真偽値（<code>.TRUE.</code>/<code>.FALSE.</code>）を指定して、格子ベクトルの変化を選択的に許可するタグ。POSCAR の格子ベクトル a&#x2081;, a&#x2082;, a&#x2083; を 3&times;3 行列 A とみなし、その成分の更新を制約する。元々は MD 中にセルの自由度を縛る目的のタグ。</p>
+      <p>3つの真偽値で格子行列 A = [a&#x2081;&nbsp;a&#x2082;&nbsp;a&#x2083;] の各成分の更新を選択的に禁止するタグ。<strong>直方晶</strong>では各値が各格子定数に直接対応する。非直方晶では応力テンソルの特定の行・列をゼロにする形で動き、格子間の角度は保存されない。</p>
 
-      <h4>直方晶の場合（Orthorhombic case）</h4>
-      <p>行列 A が対角形になるため、各真偽値が各方向の格子定数の変化に直接対応する。いずれかを <code>.FALSE.</code> にするとその方向の格子定数は変化しなくなる。</p>
-
-      <h4>MD（IBRION=0）での使い方</h4>
-      <p>NpT アンサンブルの（直方晶）液体に対し、以下が推奨されている：</p>
+      <h4>主な使い方</h4>
+      <p>NpT-MD（直方晶液体）― 面内2軸を固定し、1軸だけバロスタットで変化させる：</p>
       <pre>LATTICE_CONSTRAINTS = .FALSE. .FALSE. .TRUE.</pre>
-      <p>最初の2つの格子定数は固定し、3番目のみをバロスタットの体積変化のために開放する（系をピストンのように扱う）。液体の NpT で全格子自由度を緩めると不可逆な変形が生じやすく、極端に平たいスーパーセルになって妥当な MD 軌道が得られなくなるため、この制約が有効。</p>
-
-      <h4>構造最適化（IBRION=1,2）での使い方</h4>
-      <p>2D 材料の面内格子定数を緩和する際に有用。a&#x2081;&ndash;a&#x2082; 面にスラブがある場合（a&#x2083; 方向に真空）：</p>
+      <p>2D材料の構造最適化（IBRION=1,2）― 面内を緩め、真空方向 c を固定：</p>
       <pre>LATTICE_CONSTRAINTS = .TRUE. .TRUE. .FALSE.</pre>
-      <p>（面内 a, b は緩め、真空方向 c は固定）</p>
 
-      <h4>非直方晶の場合（Non-orthorhombic case）</h4>
-      <p>使い方が複雑になり、タグは応力テンソルの特定の行・列をゼロにする。応力をゼロにした分、対応する格子行列 A の成分が更新されなくなる。</p>
-      <p><code>.FALSE. .TRUE. .TRUE.</code> &rarr; 応力テンソルの 1 行目と 1 列目をゼロ &rarr; A の 1 行目と 1 列目が変化しない</p>
-      <p><code>.FALSE. .TRUE. .FALSE.</code> &rarr; yy 成分（a&#x2082;&#x2082;）のみが残り、A の a&#x2082;&#x2082; 成分のみが変化する</p>
-
-      <div class="warn-box"><strong>注意1:</strong> 非直方晶では、格子ベクトル間の角度は保存されない。</div>
-      <div class="warn-box"><strong>注意2:</strong> IBRION=1,2 との併用は <strong>VASP 6.4.3</strong> から利用可能。</div>
-      <div class="warn-box"><strong>注意3:</strong> ISIF=4,5 との併用は <strong>VASP 6.5.1</strong> から利用可能。</div>
-      <div class="warn-box"><strong>注意4:</strong> 6.5.0 未満のバージョンにはバグあり（フォーラム記事参照）。</div>
+      <div class="warn-box"><strong>バージョン要件:</strong> IBRION=1,2 との併用は VASP 6.4.3 以降、ISIF=4,5 は 6.5.1 以降。6.5.0 未満にはバグあり。</div>
     `,
     related: ['IBRION', 'ISIF', 'MDALGO']
   },
@@ -423,6 +444,60 @@ const tagDetails = {
       <div class="warn-box"><strong>精度の注意:</strong> LREAL=.TRUE. は力や応力に系統誤差が入る。格子定数の精密計算やフォノンには LREAL=.FALSE. を推奨。</div>
     `,
     related: ['PREC', 'ENCUT']
+  },
+
+  ISYM: {
+    wiki: 'https://vasp.at/wiki/ISYM',
+    syntax: 'ISYM = [integer]   (デフォルト: 2)',
+    content: `
+      <p>計算での対称性の扱いを指定する。</p>
+      <p><code>-1</code>: 対称性を完全に無効化<br>
+         <code>&nbsp;0</code>: 対称性を計算するが対称化は行わない（デバッグ用）<br>
+         <code>&nbsp;1</code>: 対称性を使用（USPP 向け）<br>
+         <code>&nbsp;2</code>: 対称性を使用（PAW 向け、デフォルト）<br>
+         <code>&nbsp;3</code>: PAW + フォース・応力テンソルも対称化</p>
+      <div class="warn-box"><strong>ISYM=-1 が必要な場面:</strong> NEB 計算や、対称性が途中で破れる MD など。無効化すると k 点の対称削減が効かなくなり計算コストが増える。</div>
+    `,
+    related: ['ISPIN', 'LSORBIT']
+  },
+
+  ADDGRID: {
+    wiki: 'https://vasp.at/wiki/ADDGRID',
+    syntax: 'ADDGRID = [logical]   (デフォルト: .FALSE.)',
+    content: `
+      <p>.TRUE. にすると、補強電荷（augmentation charge）の計算に通常より細かい補助グリッドを追加する。ラップアラウンドエラー（高周波成分のエイリアシング）を減らし精度が上がる。</p>
+      <h4>推奨場面</h4>
+      <p>磁性体・d 電子系・f 電子系で磁気モーメントや全エネルギーの精度を上げたいとき。<code>PREC = Accurate</code> と一緒に使うことが多い。</p>
+      <div class="warn-box"><strong>計算コスト:</strong> グリッドが増えるため若干メモリ・時間が増加するが大半の系では許容範囲。精度が重要な計算では有効にしておくのが無難。</div>
+    `,
+    related: ['PREC', 'LASPH']
+  },
+
+  GGA_COMPAT: {
+    wiki: 'https://vasp.at/wiki/GGA_COMPAT',
+    syntax: 'GGA_COMPAT = [logical]   (デフォルト: .TRUE.)',
+    content: `
+      <p>PAW 1 中心項（on-site term）での GGA 勾配の計算方式を選択する。</p>
+      <p><code>.TRUE.</code>: 旧来の方式。球面平均した勾配を使う（古い実装との互換性）<br>
+         <code>.FALSE.</code>: 新しく正確な方式。非球面の勾配寄与を正しく計算する（VASP 5.4 以降で推奨）</p>
+      <div class="warn-box"><strong>推奨:</strong> 新しい計算では <code>GGA_COMPAT = .FALSE.</code> を明示的に設定するのが一般的。格子定数・磁気モーメントの精度に影響する。既存の計算との再現性を保ちたい場合のみ .TRUE. のままにする。</div>
+    `,
+    related: ['GGA', 'LASPH']
+  },
+
+  LASPH: {
+    wiki: 'https://vasp.at/wiki/LASPH',
+    syntax: 'LASPH = [logical]   (デフォルト: .FALSE.)',
+    content: `
+      <p>.TRUE. にすると、PAW 1 中心項の交換相関エネルギーに非球面（non-spherical）補正を含める。</p>
+      <h4>有効にすべき場面</h4>
+      <p>遷移金属（d 電子）・ランタニド・アクチニド（f 電子）の系で、正確な磁気モーメント・バンドギャップ・全エネルギーが必要なとき。DFT+U やハイブリッド計算と組み合わせると特に重要。</p>
+      <pre>LASPH   = .TRUE.
+ADDGRID = .TRUE.   # 合わせて設定するのが一般的
+GGA_COMPAT = .FALSE.</pre>
+      <div class="warn-box"><strong>注意:</strong> .FALSE. のままだと d/f 電子の占有行列が不正確になり、DFT+U の結果が文献値と合わないことがある。</div>
+    `,
+    related: ['ADDGRID', 'GGA_COMPAT', 'LDAU']
   },
 
   ISPIN: {
@@ -560,6 +635,26 @@ AEXX     = 0.25   # HSE06 の標準設定</pre>
       <div class="warn-box"><strong>バンドギャップとの関係:</strong> AEXX を大きくするとバンドギャップが広がる傾向がある。実験値に合わせて調整する "tuned hybrid" として使われることもある。</div>
     `,
     related: ['HFSCREEN', 'ALGO']
+  },
+
+  IVDW: {
+    wiki: 'https://vasp.at/wiki/IVDW',
+    syntax: 'IVDW = [integer]   (デフォルト: 0)',
+    content: `
+      <p>van der Waals 分散力補正の手法を選択する。GGA は長距離分散力を過小評価するため、分子間相互作用・有機系・層状材料・多孔質材料などで重要。</p>
+      <h4>主な値</h4>
+      <p><code>&nbsp;&nbsp;0</code>: 補正なし（デフォルト）<br>
+         <code>&nbsp;10</code>: DFT-D2（Grimme 2006）。シンプルだが古い<br>
+         <code>&nbsp;11</code>: DFT-D3 ゼロ減衰（Grimme 2010）<br>
+         <code>&nbsp;12</code>: DFT-D3 Becke-Johnson 減衰 ← <strong>一般に最も精度が良い（推奨）</strong><br>
+         <code>&nbsp;20</code>: Tkatchenko-Scheffler (TS) 法。電荷密度依存のパラメータ<br>
+         <code>202</code>: 多体分散（MBD）法。最も高精度だが重い</p>
+      <h4>DFT-D3(BJ) の設定例</h4>
+      <pre>IVDW = 12</pre>
+      <p>元素ごとの C6/C8 係数・減衰パラメータは VASP が自動で読み込む。汎関数を変える場合は対応する D3 パラメータが正しく使われているか確認する。</p>
+      <div class="warn-box"><strong>組み合わせ推奨:</strong> vdW 補正を使うときは <code>GGA_COMPAT = .FALSE.</code> と <code>LASPH = .TRUE.</code> も合わせて設定することが多い。</div>
+    `,
+    related: ['GGA', 'GGA_COMPAT', 'LASPH']
   },
 
   LORBIT: {

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>k 点サンプリング — VASP</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      background-color: #fcfbfa; color: #2c2a29;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      line-height: 1.9; -webkit-font-smoothing: antialiased;
+    }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 760px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 1px; }
+    main { max-width: 760px; margin: 0 auto; padding: 52px 24px 100px; }
+    h2 {
+      font-size: 13pt; font-weight: 600; color: #2c2a29;
+      margin: 52px 0 20px; letter-spacing: 0.8px;
+      position: relative; display: inline-block;
+    }
+    h2::after { content: ''; position: absolute; bottom: -5px; left: 0; width: 100%; height: 1px; background-color: #2c2a29; }
+    h3 { font-size: 11pt; font-weight: 600; color: #3a3836; margin: 36px 0 10px; letter-spacing: 0.3px; }
+    h4 { font-size: 10pt; font-weight: 600; color: #4a4845; margin: 22px 0 8px; }
+    p { font-size: 10.5pt; margin: 0 0 14px; }
+    ul { font-size: 10.5pt; padding-left: 1.4em; margin: 0 0 14px; }
+    ul li { margin-bottom: 5px; }
+    .note { background: #f5f3ef; border-left: 3px solid #b0a898; padding: 14px 18px; margin: 24px 0; font-size: 10pt; color: #4a4845; border-radius: 0 4px 4px 0; }
+    code { font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 16px 20px; border-radius: 4px; font-family: "SFMono-Regular", "Consolas", "Menlo", monospace; font-size: 9.5pt; overflow-x: auto; margin: 16px 0; line-height: 1.7; }
+    table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: 10pt; }
+    th { text-align: left; padding: 10px 14px; background: #f0ede8; border-bottom: 2px solid #dedad5; font-weight: 600; letter-spacing: 0.5px; }
+    td { padding: 9px 14px; border-bottom: 1px solid #ece9e4; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    .warn-box {
+      background: #fef9ee; border-left: 3px solid #d4a017;
+      padding: 10px 14px; margin: 14px 0; font-size: 10pt; color: #5a4a1a;
+      border-radius: 0 3px 3px 0; line-height: 1.7;
+    }
+    footer { max-width: 760px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+
+    /* Math */
+    .math-block { overflow-x: auto; padding: 6px 0; margin: 18px 0; }
+    mjx-container[display="true"] { overflow-x: auto; }
+
+    /* Theory section styling */
+    .theory-box {
+      background: #f5f3ef;
+      border-radius: 4px;
+      padding: 22px 24px;
+      margin: 20px 0;
+    }
+    .theory-box p { font-size: 10pt; margin: 0 0 10px; }
+    .theory-box p:last-child { margin-bottom: 0; }
+
+    /* Checklist */
+    .checklist { list-style: none; padding: 0; }
+    .checklist li { padding: 5px 0 5px 24px; position: relative; font-size: 10.5pt; border-bottom: 1px solid #ece9e4; }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before { content: '□'; position: absolute; left: 0; color: #b0a898; }
+  </style>
+  <script>
+    MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)']],
+        displayMath: [['\\[', '\\]']],
+        tags: 'none'
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <script async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../index.html">研究メモ</a> &rsaquo; <a href="../index.html#vasp">VASP</a></div>
+  <h1 class="font-serif">ブリルアンゾーンと k 点サンプリング</h1>
+  <p class="font-serif">— KPOINTS / KSPACING の理論と実践 —</p>
+</header>
+
+<main>
+
+<!-- ===================== 理論的背景 ===================== -->
+<h2 class="font-serif">理論的背景</h2>
+
+<h3>周期ポテンシャルと Bloch の定理</h3>
+
+<p>
+結晶中の電子が感じるポテンシャル \(V(\mathbf{r})\) は Bravais 格子の周期性を持つ:
+</p>
+\[
+  V(\mathbf{r}+\mathbf{R}) = V(\mathbf{r}), \quad
+  \mathbf{R} = n_1\mathbf{a}_1 + n_2\mathbf{a}_2 + n_3\mathbf{a}_3 \;\in\; \Lambda
+\]
+<p>
+<strong>Bloch の定理</strong>: この周期ポテンシャル中の 1 電子固有状態は、
+結晶運動量 \(\mathbf{k}\) でラベルされた形
+</p>
+\[
+  \psi_{n\mathbf{k}}(\mathbf{r}) = e^{i\mathbf{k}\cdot\mathbf{r}}\,u_{n\mathbf{k}}(\mathbf{r})
+\]
+<p>
+に書ける。ここで \(u_{n\mathbf{k}}(\mathbf{r}+\mathbf{R}) = u_{n\mathbf{k}}(\mathbf{r})\) は格子周期的な部分。
+VASP では \(u_{n\mathbf{k}}\) を平面波 \(e^{i\mathbf{G}\cdot\mathbf{r}}\) で展開し、
+カットオフ \(|\mathbf{k}+\mathbf{G}|^2 \le 2E_\text{cut}/\hbar^2\) を <code>ENCUT</code> が決める。
+\(\mathbf{k}\) が連続的に変化するため、実際の計算では有限個の代表点でサンプリングする必要がある。
+</p>
+
+<h3>Born–von Karman 境界条件と許容 k 点</h3>
+
+<p>
+マクロな系を \(N_1 \times N_2 \times N_3\) 個のユニットセルからなる有限超格子とみなし、
+周期境界条件（Born–von Karman 条件）を課す:
+</p>
+\[
+  \psi(\mathbf{r}+N_i\mathbf{a}_i) = \psi(\mathbf{r}), \quad i=1,2,3
+\]
+<p>
+Bloch の定理を当てはめると \(e^{i\mathbf{k}\cdot N_i\mathbf{a}_i}=1\) が要求され、
+許容される k 点は次のように離散化される:
+</p>
+\[
+  \mathbf{k} = \frac{m_1}{N_1}\mathbf{b}_1 + \frac{m_2}{N_2}\mathbf{b}_2 + \frac{m_3}{N_3}\mathbf{b}_3,
+  \quad m_i \in \mathbb{Z}
+\]
+<p>
+ここで逆格子ベクトル \(\mathbf{b}_j\) は \(\mathbf{a}_i\cdot\mathbf{b}_j = 2\pi\delta_{ij}\) を満たす。
+第 1 ブリルアンゾーン（BZ）内の許容点はちょうど \(N_1 N_2 N_3\) 個あり、
+これは超格子のユニットセル数に等しい。BZ 外の点は逆格子ベクトル \(\mathbf{G}\) を加えることで
+内部に折り返せる（\(e^{i(\mathbf{k}+\mathbf{G})\cdot\mathbf{r}} \equiv e^{i\mathbf{k}\cdot\mathbf{r}}
+\cdot e^{i\mathbf{G}\cdot\mathbf{r}}\) であり、\(\mathbf{G}\cdot\mathbf{R} = 2\pi m\) から
+格子周期性と整合する）。
+</p>
+<div class="note">
+<strong>物理的な意味:</strong>
+k 点数を増やす＝より大きな仮想超格子でサンプリングする＝無限系に近づく。
+k メッシュ \(N_1 \times N_2 \times N_3\) とは、実空間で \(N_1 \times N_2 \times N_3\) セルの
+超格子を計算しているのと同等の情報量で BZ を積分することを意味する。
+</div>
+
+<h3>BZ 積分と物理量</h3>
+
+<p>
+全エネルギーなど基底状態の物理量はすべて BZ 全体の積分を含む:
+</p>
+\[
+  \bar{O} = \frac{\Omega_\text{BZ}}{(2\pi)^3} \int_\text{BZ} O(\mathbf{k})\,d^3k
+\]
+<p>
+これを許容 k 点上の離散和で近似する:
+</p>
+\[
+  \bar{O} \approx \sum_{\mathbf{k}} w_\mathbf{k}\,O(\mathbf{k}), \quad \sum_{\mathbf{k}} w_\mathbf{k} = 1
+\]
+<p>
+例として、電子密度は
+</p>
+\[
+  n(\mathbf{r}) = 2\sum_{n,\mathbf{k}} w_\mathbf{k}\,f_{n\mathbf{k}}\,|\psi_{n\mathbf{k}}(\mathbf{r})|^2
+\]
+<p>
+（スピン縮退を仮定した場合の係数 2）。この和 → 積分の近似誤差が「k 点収束」の実体であり、
+\(N_1 N_2 N_3 \to \infty\) で誤差はゼロに収束する。
+絶縁体では \(O(\mathbf{k})\) が BZ 上でなめらかなため収束が速い。
+金属ではフェルミ面で不連続が生じるため収束が遅く、密なメッシュが必要になる。
+</p>
+
+<h3>Monkhorst–Pack グリッドと Γ 中心グリッド</h3>
+
+<p>
+VASP の "Monkhorst" オプションで生成される Monkhorst–Pack (MP) グリッド:
+</p>
+\[
+  \mathbf{k}_{n_1 n_2 n_3}^{\text{MP}}
+  = \sum_{i=1}^{3} \frac{2n_i - N_i - 1}{2N_i}\,\mathbf{b}_i,
+  \quad n_i = 1,\ldots,N_i
+\]
+<p>
+VASP の "Gamma" オプションで生成される Γ 中心グリッド:
+</p>
+\[
+  \mathbf{k}_{n_1 n_2 n_3}^{\Gamma}
+  = \sum_{i=1}^{3} \frac{n_i - 1}{N_i}\,\mathbf{b}_i,
+  \quad n_i = 1,\ldots,N_i
+\]
+<p>
+\(N_i\) が<strong>奇数</strong>のとき、両グリッドは全体シフトを除いて同一の点集合になる。
+\(N_i\) が<strong>偶数</strong>のとき、MP グリッドは Γ 点を含まず中心からずれ、
+Γ 中心グリッドは Γ 点を含む。
+Γ 中心は六方晶など非直交系で対称性と整合するため安全（後述）。
+</p>
+
+<h3>対称性と既約 BZ</h3>
+
+<p>
+結晶の点群操作 \(R\) はエネルギーバンドを不変に保つ:
+\(\varepsilon_{n,R\mathbf{k}} = \varepsilon_{n\mathbf{k}}\)。
+VASP はこれを使い \(N_1 N_2 N_3\) 点のフルメッシュを<strong>既約 BZ (IBZ)</strong> に圧縮し、
+各 k 点に重み \(w_\mathbf{k}\) を付ける:
+</p>
+\[
+  w_\mathbf{k} = \frac{\text{（}k\text{ と対称等価な点の数）}}{N_1 N_2 N_3},
+  \quad \sum_{\mathbf{k}\in\text{IBZ}} w_\mathbf{k} = 1
+\]
+<p>
+対称性が高い系ほど IBZ は小さく、実計算点数が減る。例えば単純立方の \(N\times N\times N\)
+グリッドは、最大で \(1/48\) 程度まで圧縮される。ISYM のデフォルト（対称性削減あり）が
+ほとんどの計算で有効。
+</p>
+
+<h3>金属とスメアリング</h3>
+
+<p>
+金属では 0 K の Fermi–Dirac 分布はステップ関数:
+</p>
+\[
+  f_{n\mathbf{k}}^{(0)} = \theta(\varepsilon_F - \varepsilon_{n\mathbf{k}})
+\]
+<p>
+この不連続が BZ 積分の収束を遅くする（特にフェルミ面付近で状態密度が大きいとき顕著）。
+スメアリング手法は \(\theta\) を幅 \(\sigma\) のなめらかな関数 \(f_\sigma\) で置き換える。
+</p>
+
+<table>
+  <tr><th>ISMEAR</th><th>手法</th><th>関数形の特徴</th><th>推奨場面</th></tr>
+  <tr><td style="white-space:nowrap">-5</td><td>Blöchl テトラへドロン</td><td>\(\theta\) の線形補間（幅なし）</td><td>半導体・絶縁体の DOS</td></tr>
+  <tr><td>0</td><td>Gaussian</td><td>\(\tfrac{1}{2}\operatorname{erfc}(\varepsilon/\sigma)\)</td><td>絶縁体の静的計算</td></tr>
+  <tr><td>1</td><td>Methfessel–Paxton 1次</td><td>Hermite 展開で系統誤差を低減</td><td>金属（推奨）</td></tr>
+  <tr><td>-1</td><td>Fermi–Dirac</td><td>\((e^{\varepsilon/\sigma}+1)^{-1}\)</td><td>有限温度 MD</td></tr>
+</table>
+
+<p>
+スメアリングによる自由エネルギー補正（エントロピー項）は:
+</p>
+\[
+  F = E_\text{el} - T_\text{eff}S_\text{el} \approx E_\text{el} - \sigma S_\text{el}
+\]
+<p>
+OUTCAR に記録される "entropy" \(= \sigma S_\text{el}\) が全エネルギーの 1 meV/atom 未満であれば、
+\(\sigma\) の影響は無視できる。k 点と SIGMA はセットで収束を確認すること。
+</p>
+
+<!-- ===================== 実際に使う形式 ===================== -->
+<h2 class="font-serif">実際に使う 2 つの形式</h2>
+
+<h3>(a) 規則メッシュ ― SCF・構造最適化・DOS</h3>
+
+<p>ほとんどの本番計算はこれ。分割数を手で書くので、セル寸法が変わってもメッシュが変わらない（格子定数スキャンで段差が出ない）。</p>
+
+<pre>Regular mesh
+0              ! 0 = 点数を自動生成
+Gamma          ! Gamma か Monkhorst か（中心の選択、後述）
+ N1  N2  N3    ! 各逆格子方向の分割数
+  0   0   0    ! 追加シフト（通常 0 0 0）</pre>
+
+<h3>(b) Line mode ― バンド構造</h3>
+
+<p>高対称線に沿って点を並べるモード。<strong>2 ステップで使う</strong>: まず規則メッシュで SCF 計算して CHGCAR を作り → INCAR に <code>ICHARG = 11</code> を加えて line mode で非自己無撞着計算を走らせる（密度を固定したままバンドだけ描く）。</p>
+
+<pre>band path
+ 40            ! 各区間の点数
+Line
+reciprocal     ! 分数（逆格子）座標。Cartesian なら Cartesian
+ 0.0 0.0 0.0   GAMMA
+ 0.5 0.0 0.0   X
+
+ 0.5 0.0 0.0   X
+ 0.5 0.5 0.0   M
+ ...</pre>
+
+<div class="warn-box">
+<strong>高対称点の座標:</strong> 構造（primitive / conventional）によって逆格子座標が変わる。
+<a href="https://www.materialscloud.org/work/tools/seekpath" target="_blank" rel="noopener">SeeK-path</a>
+や Bilbao Crystallographic Server などのツールで取得するのが安全。
+</div>
+<div class="warn-box">
+<strong>meta-GGA・ハイブリッド汎関数:</strong> line mode が使えないため、
+規則メッシュ + <code>KPOINTS_OPT</code>（VASP 6.3 以降）で後処理としてバンドを取得する。
+</div>
+
+<!-- ===================== 中心の選び方 ===================== -->
+<h2 class="font-serif">中心の選び方 ― Γ か MP か</h2>
+
+<p>Γ 中心と MP の違いは本質的にはメッシュ全体のシフトだけ。分割数が<strong>奇数</strong>なら両者は一致し、<strong>偶数</strong>だと Γ 中心は MP に対して半セル分ずれる。</p>
+
+<table>
+  <tr><th>結晶系</th><th>中心</th><th>理由</th></tr>
+  <tr><td>fcc・六方晶・面心直方晶</td><td><strong>Gamma のみ</strong></td><td>MP だと対称操作で生成点が BZ 外に出る。IBZKPT エラーが出たら Gamma に変える</td></tr>
+  <tr><td>立方・正方・単純直方</td><td>MP でも可</td><td>MP の方が速く収束することがある。迷うなら Gamma が無難</td></tr>
+</table>
+
+<div class="warn-box">
+<strong>IBZKPT エラー:</strong> "generating k-lattice" という文言を含むエラーが出たら、<code>Monkhorst</code> を <code>Gamma</code> に変えるだけで直ることがほとんど。
+</div>
+
+<!-- ===================== 分割数の比 ===================== -->
+<h2 class="font-serif">分割数の比の決め方</h2>
+
+<p>長い実格子軸ほど逆格子空間では短くなるため、k 点数は実格子長に反比例させる。軸がほぼ直交する系（立方・正方・直方）での一般則:</p>
+
+\[
+  N_1 : N_2 : N_3 \;\approx\; \frac{1}{|\mathbf{a}_1|} : \frac{1}{|\mathbf{a}_2|} : \frac{1}{|\mathbf{a}_3|}
+\]
+
+<p>より一般には逆格子ベクトル長の比 \(|\mathbf{b}_1| : |\mathbf{b}_2| : |\mathbf{b}_3|\) が正確。非直交系ではこの 2 つは一致しない。</p>
+
+<table>
+  <tr><th>結晶系・特殊性</th><th>比の取り方</th></tr>
+  <tr><td>立方・正方・単純直方</td><td>\(1/|\mathbf{a}_i|\) 比（≡ \(|\mathbf{b}_i|\) 比）</td></tr>
+  <tr><td>fcc・六方晶・面心直方</td><td>\(|\mathbf{b}_i|\) 比を使う（Γ 中心と組み合わせる）</td></tr>
+  <tr><td>体心正方・体心直方</td><td>\(1/|\mathbf{a}_i|\) 比。体心格子で KSPACING が不適なことがある</td></tr>
+  <tr><td>真空方向（スラブ・分子）</td><td>1 に固定</td></tr>
+</table>
+
+<div class="note">
+<strong>重要:</strong> 比は k メッシュの「形」を決めるだけ。実際の密度（絶対数）は次の収束テストで決まる。
+</div>
+
+<!-- ===================== 奇数か偶数か ===================== -->
+<h2 class="font-serif">奇数か偶数か</h2>
+
+<table>
+  <tr><th>系</th><th>推奨</th><th>理由</th></tr>
+  <tr><td>六方晶・三方晶</td><td>奇数 + Gamma 中心</td><td>偶数 Gamma 中心では対称操作で BZ 外に点が出やすい</td></tr>
+  <tr><td>立方など直交高対称系</td><td>偶数 + MP も可</td><td>偶数 MP は Γ 点そのものを避けるため代表点として素直で収束が良い場合がある</td></tr>
+  <tr><td>その他</td><td>奇数 Gamma を出発点に</td><td>安全策として</td></tr>
+</table>
+
+<!-- ===================== 収束の取り方 ===================== -->
+<h2 class="font-serif">収束の取り方と密度の目安</h2>
+
+<h3>収束テストの手順</h3>
+
+<p>幾何を固定したまま（緩和せず同じ構造で）グリッドだけ変えて 1 点計算を並べ、全エネルギー/原子を隣のグリッドと比較する。</p>
+
+<ul>
+  <li><strong>判定:</strong> 連続グリッド間で \(|\Delta E|/\text{atom} < 1\,\text{meV}\) なら粗い方を採用</li>
+  <li>エネルギー差（構造間・格子定数間）は絶対エネルギーより速く収束するため、相対比較が目的なら粗いメッシュで足りることが多い</li>
+  <li>金属では <code>T*S/atom</code>（OUTCAR の entropy）も確認し、k 点と SIGMA 両方の妥当性をチェック</li>
+  <li>フォースや応力を見るなら、それらの収束も別途確認</li>
+</ul>
+
+<h3>系のタイプ別の出発点</h3>
+
+<p>VASP の KSPACING の指針を逆算した目安（\(R_k = 2\pi / \text{KSPACING}\)):</p>
+
+<table>
+  <tr><th>系のタイプ</th><th>\(R_k\) 目安 (Å)</th><th>KSPACING 目安 (Å⁻¹)</th><th>感触</th></tr>
+  <tr><td>大ギャップ絶縁体</td><td>~10</td><td>~0.6</td><td>粗くてよい</td></tr>
+  <tr><td>半導体・通常の絶縁体</td><td>~30</td><td>~0.2</td><td>一般的な出発点</td></tr>
+  <tr><td>金属</td><td>~50</td><td>~0.13</td><td>密め</td></tr>
+  <tr><td>d 金属・微細 DOS・フォノン</td><td>~100</td><td>~0.06</td><td>かなり密</td></tr>
+</table>
+
+<h3>具体的な系での感覚（収束前の当たり）</h3>
+
+<table>
+  <tr><th>系の例</th><th>典型的なグリッド</th><th>備考</th></tr>
+  <tr><td>大ギャップ絶縁体（MgO 等, primitive）</td><td>4×4×4 〜 6×6×6</td><td>ギャップが大きく粗くて済む</td></tr>
+  <tr><td>半導体（Si, diamond, primitive）</td><td>6×6×6 〜 8×8×8</td><td>エネルギーは 6×6×6 でほぼ収束</td></tr>
+  <tr><td>単体金属（fcc Cu 等）</td><td>12×12×12 以上</td><td>フェルミ面ぶん密に</td></tr>
+  <tr><td>グラフェン（primitive, 2D）</td><td>12×12×1 〜 24×24×1</td><td>面内密・真空方向 1 点</td></tr>
+</table>
+
+<h3>スーパーセルと k 点の関係</h3>
+
+<p>BvK 条件から直接導かれる関係: <strong>k 点数 × 実空間セル長 ≈ 一定</strong>。</p>
+<ul>
+  <li>\(n\times n\times n\) のスーパーセルを作ったら、各方向の k 点を約 \(1/n\) に減らせる</li>
+  <li>逆に primitive に縮めたら比例して増やす</li>
+  <li>真空層がある方向（スラブ・分子, 厚み ≳ 15 Å）→ k 点は 1 に固定</li>
+</ul>
+
+<!-- ===================== KSPACING ===================== -->
+<h2 class="font-serif">KSPACING のさじ加減</h2>
+
+<p>KPOINTS ファイルが無い場合、INCAR の <code>KSPACING</code>（単位 Å⁻¹, デフォルト 0.5）が代わりにグリッドを決める:</p>
+
+\[
+  N_i = \left\lceil \frac{|\mathbf{b}_i|}{2\pi} \cdot \frac{2\pi}{\text{KSPACING}} \right\rceil
+       = \left\lceil \frac{|\mathbf{b}_i|}{\text{KSPACING}} \right\rceil
+\]
+
+<p><code>KGAMMA = .TRUE.</code>（デフォルト）で Γ 中心、<code>.FALSE.</code> で MP 風シフト。</p>
+
+<table>
+  <tr><th></th><th>内容</th></tr>
+  <tr><td><strong>利点</strong></td><td>1 行で密度を指定でき、系によらず同じ基準で揃えられる。最初の感触出しに便利</td></tr>
+  <tr><td><strong>弱点①</strong></td><td>セル寸法が変わると点数が飛ぶ → EOS・格子定数スキャンで \(E(a)\) に段差が出る</td></tr>
+  <tr><td><strong>弱点②</strong></td><td>奇偶や方向ごとの細かい制御がしにくい（六方晶で「奇数 Γ 中心」を狙いにくい）</td></tr>
+  <tr><td><strong>弱点③</strong></td><td>逆格子ベクトル基準のため体心格子などで不適なことがある</td></tr>
+</table>
+
+<div class="note">
+<strong>使い分け:</strong> 一発目の試走は KSPACING で雰囲気を掴み、本番・スキャンは規則メッシュ（明示分割数）を固定する。
+</div>
+
+<!-- ===================== よくある落とし穴 ===================== -->
+<h2 class="font-serif">よくある落とし穴</h2>
+
+<table>
+  <tr><th>症状</th><th>原因</th><th>対処</th></tr>
+  <tr>
+    <td>IBZKPT エラー（"generating k-lattice"）</td>
+    <td>六方晶で Monkhorst を使っている</td>
+    <td>KPOINTS の中心を <code>Gamma</code> に変える</td>
+  </tr>
+  <tr>
+    <td>\(E(a)\) スキャンがガタつく</td>
+    <td>KSPACING 使用中にセル寸法が変わり点数が飛んでいる</td>
+    <td>明示分割数の規則メッシュに固定する</td>
+  </tr>
+  <tr>
+    <td>エネルギーは収束しているがフォース・応力が大きくぶれる</td>
+    <td>k 点が粗い（フォース・応力はエネルギーより収束が遅い）</td>
+    <td>フォース・応力で別途収束テストを取る</td>
+  </tr>
+  <tr>
+    <td>バンド構造が正しく描けない</td>
+    <td>line mode の前に SCF で CHGCAR を作っていない</td>
+    <td>SCF → <code>ICHARG = 11</code> + line mode の 2 ステップを踏む</td>
+  </tr>
+  <tr>
+    <td>真空方向に余分な k 点</td>
+    <td>スラブなのに面外方向の k 点を増やしている</td>
+    <td>真空方向（厚み ≳ 15 Å）は 1 点に固定</td>
+  </tr>
+  <tr>
+    <td>メッシュが密なのに収束が悪い</td>
+    <td>SIGMA が大きく自由エネルギー補正が効いている</td>
+    <td>SIGMA を小さくし entropy/atom を確認する</td>
+  </tr>
+</table>
+
+<!-- ===================== まとめ ===================== -->
+<h2 class="font-serif">まとめ（チェックリスト）</h2>
+
+<ul class="checklist">
+  <li><strong>形式:</strong> SCF・緩和・DOS は規則メッシュ、バンドは規則メッシュで CHGCAR 作成後に line mode + <code>ICHARG = 11</code></li>
+  <li><strong>中心:</strong> fcc・六方・面心直方は Gamma 一択、直交系は MP でも可</li>
+  <li><strong>比:</strong> 直交系は \(1/|\mathbf{a}_i|\)、非直交系は \(|\mathbf{b}_i|\) で比率を決める。比は「形」だけ</li>
+  <li><strong>奇偶:</strong> 六方系は奇数 Gamma 中心、立方系は偶数 MP を出発点に</li>
+  <li><strong>密度:</strong> タイプ別の目安（絶縁体は粗・金属は密）から始め、\(\Delta E/\text{atom} < 1\,\text{meV}\) で確定</li>
+  <li><strong>金属:</strong> entropy/atom も確認し、相対比較なら粗くても可</li>
+  <li><strong>スーパーセル:</strong> \(n\times\) 拡大したら k 点を \(1/n\) に、真空方向は 1</li>
+  <li><strong>スキャン:</strong> 格子定数・EOS スキャンは同一の明示グリッドを固定（KSPACING は一発目だけ）</li>
+</ul>
+
+<h3>参考: VASP Wiki</h3>
+<ul>
+  <li><a href="https://www.vasp.at/wiki/index.php/KPOINTS" target="_blank" rel="noopener">KPOINTS</a></li>
+  <li><a href="https://vasp.at/wiki/KSPACING" target="_blank" rel="noopener">KSPACING</a></li>
+</ul>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ</p>
+</footer>
+
+</body>
+</html>
