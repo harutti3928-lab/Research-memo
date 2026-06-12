@@ -116,6 +116,7 @@
     <tr class="tag-row" data-tag="EDIFFG"><td>EDIFFG <span class="tag-indicator">▶</span></td><td>構造最適化の収束判定。負値にするとイオン力の閾値（eV/Å）</td><td>-0.01</td></tr>
     <tr class="tag-row" data-tag="NSW"><td>NSW <span class="tag-indicator">▶</span></td><td>イオン最適化のステップ数。0 で静的計算</td><td>0 / 100</td></tr>
     <tr class="tag-row" data-tag="IBRION"><td>IBRION <span class="tag-indicator">▶</span></td><td>イオン更新アルゴリズム。2: CG、3: damped MD、-1: 固定</td><td>2</td></tr>
+    <tr class="tag-row" data-tag="POTIM"><td>POTIM <span class="tag-indicator">▶</span></td><td>イオンのステップ幅。MD: 時間刻み(fs)、緩和: スケール因子、フォノン: 変位(Å)</td><td>2</td></tr>
     <tr class="tag-row" data-tag="ISIF"><td>ISIF <span class="tag-indicator">▶</span></td><td>体積・形状の最適化フラグ。2: 原子位置のみ、3: 全最適化</td><td>2 / 3</td></tr>
     <tr class="tag-row" data-tag="LATTICE_CONSTRAINTS"><td>LATTICE_CONSTRAINTS <span class="tag-indicator">▶</span></td><td>格子ベクトルの変化を方向ごとに制限する。2D材料や液体 NpT-MD に有用</td><td>.TRUE. .TRUE. .FALSE.</td></tr>
   </table>
@@ -243,7 +244,7 @@ const tagDetails = {
     syntax: 'ICHARG = [integer]   (デフォルト: ISTART=0 なら 2、それ以外は 0)',
     content: `
       <p>SCF の初期電荷密度をどこから取得するかを指定する。</p>
-      <p><code>0</code>: 初期波動関数から電荷密度を計算（ISTART=1,2 のデフォルト）<br>
+      <p><code>0</code>: WAVECARから電荷密度を計算（ISTART=1,2 のデフォルト）<br>
          <code>1</code>: CHGCAR を読んで使用（継続計算・再起動）<br>
          <code>2</code>: 原子の電荷密度を重ね合わせた初期値（ISTART=0 のデフォルト。速くて安定）<br>
          <code>11</code>: CHGCAR を読んで固定 ← <strong>バンド構造計算で必須</strong></p>
@@ -326,6 +327,25 @@ const tagDetails = {
     related: ['NSW', 'EDIFFG', 'ISIF']
   },
 
+  POTIM: {
+    wiki: 'https://vasp.at/wiki/POTIM',
+    syntax: 'POTIM = [real]   (IBRION=0: fs、IBRION=1-3: 無次元、IBRION=5,6: Å)',
+    content: `
+      <p>イオンを動かすステップ幅。意味は IBRION に依存する。</p>
+      <p><strong>IBRION=0</strong>（MD）: 時間刻み（fs）。<br>
+         <strong>IBRION=1, 2, 3</strong>（構造最適化）: 力に対するステップのスケール因子
+         （デフォルト 0.5）。IBRION=2（CG）では直線探索の初期試行ステップを決める。<br>
+         <strong>IBRION=5, 6</strong>（有限差分・フォノン）: 原子変位の振幅（Å、デフォルト 0.015）。</p>
+      <h4>典型的な値</h4>
+      <p><code>0.5</code>: 構造最適化のデフォルト。良い初期構造ならそのままで可<br>
+         <code>0.1〜0.3</code>: 緩和が発散する・原子が飛びすぎる場合に下げる<br>
+         <code>1〜2</code> fs: MD の時間刻み（軽元素を含むなら小さく）</p>
+      <div class="warn-box"><strong>注意:</strong> IBRION=0 で POTIM 未設定はエラーになる。
+         緩和中に "trial step" 系の警告が頻発する場合は調整の目安。</div>
+    `,
+    related: ['IBRION', 'NSW', 'EDIFFG', 'SMASS']
+  },
+
   ISIF: {
     wiki: 'https://vasp.at/wiki/ISIF',
     syntax: 'ISIF = [integer]   (デフォルト: 2)',
@@ -335,7 +355,7 @@ const tagDetails = {
       <p><code>0</code>: 力のみ計算、応力テンソル未計算、セル変化なし← <strong>MD専用</strong><br>
          <code>2</code>: 力 + 応力テンソル全成分（セルは変化させない）← <strong>通常の原子位置最適化</strong><br>
          <code>3</code>: 力 + 応力 + セル形状・体積 ← <strong>全最適化</strong><br>
-         <code>8</code>: 体積 + 原子位置(形状固定) ← <strong>角度保全で対称性keep</strong></p>
+         <code>8</code>: 体積 + 原子位置(形状固定) ← <strong>角度保全で対称性keep(ただしセルの形状は変わらない)</strong></p>
       <div class="warn-box"><strong>スラブ(界面)計算:</strong> 通常 ISIF=2（セル固定）を使う。ISIF=3 にすると真空層まで縮む可能性がある。</div>
     `,
     related: ['IBRION', 'NSW', 'LATTICE_CONSTRAINTS']
@@ -364,12 +384,12 @@ const tagDetails = {
     content: `
       <p>部分占有数（フェルミ準位付近のスメアリング）の手法を指定する。</p>
       <h4>値と推奨用途</h4>
-      <p><code>-5</code>: Bl&ouml;chl テトラへドロン法。半導体・絶縁体の DOS 精度が最も高い。<strong>均一な k 点グリッドが必要</strong>（高対称点パスには使えない）<br>
+      <p><code>-5</code>: Bl&ouml;chl テトラへドロン法。半導体・絶縁体・金属の静的エネルギー計算に使える。<strong>均一な k 点グリッドが必要</strong>（高対称点パスには使えない）<br>
          <code>-1</code>: Fermi-Dirac スメアリング（有限温度 MD 向け）<br>
-         <code>&nbsp;0</code>: Gaussian スメアリング。半導体・絶縁体の静的計算に使える<br>
+         <code>&nbsp;0</code>: Gaussian スメアリング。半導体・絶縁体の構造最適化計算・すべてのバンド計算に使える<br>
          <code>&nbsp;1</code>: Methfessel-Paxton 1次。金属の推奨手法<br>
          <code>&nbsp;2</code>: Methfessel-Paxton 2次。金属でさらに精度が必要なとき</p>
-      <div class="warn-box"><strong>DOS 計算のまとめ:</strong> 精密な DOS は ISMEAR=-5 + 小さめの SIGMA。バンド構造計算（高対称点パス）では ISMEAR=0 または 1。</div>
+      <div class="warn-box"><strong>DOS 計算のまとめ:</strong> 精密な DOS・scf は ISMEAR=-5 + 小さめの SIGMA。バンド構造計算（高対称点パス）では ISMEAR=0 または 1。</div>
     `,
     related: ['SIGMA']
   },
@@ -382,7 +402,7 @@ const tagDetails = {
       <h4>推奨値</h4>
       <p>金属（ISMEAR=1）: <code>0.05</code> &ndash; <code>0.2</code>。自由電子的な金属は大きめ（0.2）、d 電子系は小さめ（0.05&ndash;0.1）。<br>
          絶縁体・半導体（ISMEAR=0）: <code>0.05</code> 以下。バンドギャップより十分小さい値にすること。</p>
-      <div class="warn-box"><strong>検証方法:</strong> OUTCAR の「entropy contribution」が全エネルギーの 0.1% 以下になる SIGMA を選ぶと安全。</div>
+      // <div class="warn-box"><strong>検証方法:</strong> OUTCAR の「entropy contribution」が全エネルギーの 0.1% 以下(TS < 1 meV/atom)になる SIGMA を選ぶと安全。</div>
     `,
     related: ['ISMEAR']
   },
