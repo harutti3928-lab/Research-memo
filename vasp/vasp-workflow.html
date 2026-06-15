@@ -36,7 +36,7 @@
 <header>
   <div class="breadcrumb"><a href="../index.html">研究メモ</a> &rsaquo; <a href="../index.html#vasp">VASP</a></div>
   <h1 class="font-serif">計算の流れ</h1>
-  <p class="font-serif">— 構造最適化 → 電子構造 → DOS —</p>
+  <p class="font-serif">— 構造最適化 → SCF → バンド構造 —</p>
 </header>
 
 <main>
@@ -101,9 +101,12 @@ grep "TOTEN" OUTCAR | tail -5</pre>
 -----------------------
 NSW    = 0
 IBRION = -1
-ICHARG = 2   # 重ね合わせ電荷密度から開始（デフォルト）
+ICHARG = 2      # 重ね合わせ電荷密度から開始（デフォルト）
 LCHARG = .TRUE.
-LWAVE  = .FALSE.</pre>
+LWAVE  = .FALSE.
+
+ISMEAR = 1      # 金属: Methfessel-Paxton 1次 / 絶縁体: 0
+SIGMA  = 0.1    # 絶縁体の場合は 0.05 以下</pre>
   <pre>KPOINTS (Monkhorst-Pack)
 -----------------------
 Automatic
@@ -151,22 +154,6 @@ LCHARG = .FALSE.</pre>
     </div>
   </div>
 
-  <h2 class="font-serif">Step 4 : 状態密度 (DOS) 計算</h2>
-  <pre>INCAR (DOS 用)
---------------
-NSW    = 0
-ICHARG = 11
-ISMEAR = -5   # 改良テトラへドロン法（DOS に適切）
-SIGMA  = 0.1
-LORBIT = 11
-NEDOS  = 2000
-EMIN   = -10
-EMAX   =  10</pre>
-  <p>KPOINTS は SCF より稠密なグリッドを推奨（例: 12×12×12）。出力は <code>DOSCAR</code> および <code>vasprun.xml</code> から読む。</p>
-
-  <div class="note">
-    DOS 計算で <code>ISMEAR = -5</code> にする場合は k グリッドをガンマ中心かつ十分稠密にすること。金属で k 数が少ないと不正確な結果が出る。
-  </div>
 
 </main>
 

@@ -170,27 +170,76 @@
     <tr class="tag-row" data-tag="NWRITE"><td>NWRITE <span class="tag-indicator">▶</span></td><td>OUTCAR への出力頻度。0: 最小限、2: 標準</td><td>2</td></tr>
   </table>
 
-  <h2 class="font-serif">バンド構造計算用 INCAR 例</h2>
-  <pre>
-SYSTEM = band structure calc
+  <h2 class="font-serif">INCAR 例：計算ステップ別</h2>
+
+  <h3>構造最適化用</h3>
+  <pre>SYSTEM = geometry optimization
+
 ENCUT  = 500
 PREC   = Accurate
 EDIFF  = 1E-6
+EDIFFG = -0.01   # 力の閾値 eV/Å
+NSW    = 100
+IBRION = 2       # CG 法
+ISIF   = 3       # セル形状・体積も最適化
 
+ISMEAR = 1       # 金属: Methfessel-Paxton 1次
+SIGMA  = 0.1     # 絶縁体の場合は ISMEAR=0, SIGMA=0.05
+
+ISTART = 0
+ICHARG = 2
+
+ISPIN  = 1
+LWAVE  = .FALSE.
+LCHARG = .FALSE.
+
+ISYM = 2
+LREAL = Auto
+ADDGRID = .TRUE.
+GGA_COMPAT = .FALSE.
+LASPH = .TRUE.</pre>
+
+  <h3>SCF 計算用（バンド計算前処理）</h3>
+  <pre>SYSTEM = SCF — charge density for band/DOS
+
+ENCUT  = 500
+PREC   = Accurate
+EDIFF  = 1E-6
 NSW    = 0
 IBRION = -1
-GGA = PE
-ISIF = 8
-EDIFFG = -0.01
-IVDW = 12 
 
-ISMEAR = 0
+ISMEAR = 1       # 金属: Methfessel-Paxton 1次
+SIGMA  = 0.1     # 絶縁体の場合は ISMEAR=0, SIGMA=0.05
+
+ISTART = 0
+ICHARG = 2
+
+ISPIN  = 1
+LWAVE  = .FALSE.
+LCHARG = .TRUE.  # CHGCAR を保存 → バンド計算で使用
+
+ISYM = 2
+LREAL = Auto
+ADDGRID = .TRUE.
+GGA_COMPAT = .FALSE.
+LASPH = .TRUE.</pre>
+
+  <h3>バンド構造計算用</h3>
+  <pre>SYSTEM = band structure calculation
+
+ENCUT  = 500
+PREC   = Accurate
+EDIFF  = 1E-6
+NSW    = 0
+IBRION = -1
+
+ISMEAR = 0       # 高対称点パスには Gaussian 固定（-5 は均一グリッド専用で不可）
 SIGMA  = 0.05
 
-ICHARG = 2
 ISTART = 0
+ICHARG = 11      # SCF の CHGCAR を読み込み、電荷密度を固定
 
-ISPIN = 1
+ISPIN  = 1
 LORBIT = 11
 LWAVE  = .FALSE.
 LCHARG = .FALSE.
@@ -199,12 +248,10 @@ ISYM = 2
 LREAL = .FALSE.
 ADDGRID = .TRUE.
 GGA_COMPAT = .FALSE.
-LASPH = .TRUE.
-
-</pre>
+LASPH = .TRUE.</pre>
 
   <div class="note">
-    バンド計算では事前にSCF計算で CHGCAR を作成し、本計算で <code>ICHARG = 11</code>（電荷密度を固定）を指定する。KPOINTS には高対称点パスを手書きか vaspkit/pymatgen で生成する。
+    バンド計算は SCF → バンド計算の 2 ステップ。SCF では <code>LCHARG = .TRUE.</code> で CHGCAR を保存し、バンド計算で <code>ICHARG = 11</code>（電荷固定）を使う。KPOINTS には高対称点パスを vaspkit/pymatgen で生成する。
   </div>
 
 </main>
