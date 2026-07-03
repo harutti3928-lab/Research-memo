@@ -19,6 +19,9 @@
     { path: 'eliashberg/eliashberg-equations.html',title: '方程式の導出と構造',       section: 'Eliashberg方程式' },
     { path: 'eliashberg/eliashberg-a2f.html',      title: 'α²F(ω) と λ の計算',      section: 'Eliashberg方程式' },
     { path: 'eliashberg/eliashberg-tc.html',       title: 'Tc の見積もり',            section: 'Eliashberg方程式' },
+    { path: 'code/functions/nonint.html',          title: 'Nonint — 非相互作用H(k)',  section: 'コード解説' },
+    { path: 'code/functions/flex.html',            title: 'FLEX（準備中）',           section: 'コード解説' },
+    { path: 'code/functions/eliashberg.html',      title: 'Eliashberg（準備中）',     section: 'コード解説' },
   ];
 
   var KNOWN_DIRS = ['vasp', 'flex', 'wannier', 'eliashberg'];
