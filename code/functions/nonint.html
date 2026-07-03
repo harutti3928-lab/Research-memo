@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nonint — 非相互作用ハミルトニアン | コード解説</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      background-color: #fcfbfa; color: #2c2a29;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      line-height: 1.9; -webkit-font-smoothing: antialiased;
+    }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 820px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 0.5px; }
+    main { max-width: 820px; margin: 0 auto; padding: 48px 24px 100px; }
+    h2 {
+      font-size: 14pt; font-weight: 600; color: #2c2a29;
+      margin: 46px 0 8px; letter-spacing: 0.4px;
+      border-left: 3px solid #4a69b5; padding-left: 14px;
+    }
+    h2 .file-kind { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8.5pt; color: #96938f; font-weight: 500; letter-spacing: 0.5px; margin-left: 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .lead { font-size: 10.5pt; color: #4a4845; margin: 4px 0 24px; }
+    code { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 16px 18px; border-radius: 4px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9pt; overflow-x: auto; margin: 16px 0; line-height: 1.7; }
+    .note { background: #eef1f9; border-left: 3px solid #4a69b5; padding: 14px 18px; margin: 22px 0; font-size: 10pt; color: #2c2a29; border-radius: 0 4px 4px 0; }
+    footer { max-width: 820px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+
+    /* ── file-level import banner ─────────────── */
+    .imports { margin: 14px 0 30px; border: 1px solid #e3e0da; border-radius: 6px; overflow: hidden; }
+    .imports .code-head { background: #edeae4; padding: 6px 14px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .imports pre { margin: 0; border-radius: 0; background: #fbfaf8; }
+
+    /* ── function list ────────────────────────── */
+    .fn-list { margin: 6px 0 8px; border-top: 1px solid #e6e4e0; }
+    .fn-row {
+      cursor: pointer; padding: 15px 8px 15px 6px;
+      border-bottom: 1px solid #ece9e4; transition: background 0.15s;
+      display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    }
+    .fn-row:hover { background: #f5f3ef; }
+    .fn-name {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 11pt; font-weight: 600; color: #1a3a6a; letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    .fn-ind { font-size: 7pt; color: #b0a898; margin-left: 5px; transition: transform 0.2s ease; display: inline-block; vertical-align: middle; }
+    .fn-row.open .fn-ind { transform: rotate(90deg); }
+    .fn-sub { font-size: 9.5pt; color: #73706c; flex: 1; min-width: 220px; }
+
+    /* ── detail panel ─────────────────────────── */
+    .fn-detail {
+      display: none; background: #f9f7f4; border-left: 3px solid #4a69b5;
+      padding: 22px 26px; margin: 0 0 2px; animation: detailIn 0.18s ease-out;
+    }
+    .fn-row.open + .fn-detail { display: block; }
+    @keyframes detailIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .fn-detail h4 { font-size: 10pt; font-weight: 600; color: #2c2a29; margin: 20px 0 8px; letter-spacing: 0.3px; }
+    .fn-detail h4:first-of-type { margin-top: 0; }
+    .fn-detail p { font-size: 10pt; margin: 0 0 10px; color: #3a3836; }
+    .syntax-box {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 9pt; background: #edeae4; border-radius: 3px;
+      padding: 10px 14px; margin: 0 0 4px; color: #2c2a29; overflow-x: auto;
+    }
+    .code-wrap { margin: 12px 0 4px; border: 1px solid #e3e0da; border-radius: 5px; overflow: hidden; }
+    .code-head { background: #edeae4; padding: 5px 13px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .code-wrap pre { margin: 0; border-radius: 0; background: #fbfaf8; font-size: 8.7pt; line-height: 1.68; padding: 13px 15px; }
+
+    /* ── "読み方" mapping list ────────────────── */
+    .read-list { list-style: none; padding: 0; margin: 6px 0 4px; }
+    .read-list > li { position: relative; padding: 7px 0 7px 18px; font-size: 9.8pt; color: #3a3836; border-bottom: 1px dashed #e7e3dc; }
+    .read-list > li:last-child { border-bottom: none; }
+    .read-list > li::before { content: "▸"; position: absolute; left: 0; top: 8px; color: #b0a898; font-size: 8pt; }
+    .read-list code { font-size: 8.9pt; color: #1a3a6a; background: #edeae4; }
+    .read-list b { color: #253a6a; }
+
+    .warn-box {
+      background: #fef9ee; border-left: 3px solid #d4a017;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #5a4a1a;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .tip-box {
+      background: #eef7f0; border-left: 3px solid #4a8a5a;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #234a30;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .related { margin-top: 16px; padding-top: 10px; border-top: 1px solid #e3ded6; font-size: 9pt; color: #73706c; }
+    .related code { font-size: 8.9pt; color: #1a3a6a; }
+  </style>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../../index.html">研究メモ</a> &rsaquo; コード解説 &rsaquo; Nonint</div>
+  <h1 class="font-serif">Nonint — 非相互作用ハミルトニアン</h1>
+  <p class="font-serif">— hop.dat から H(k) を組み、対角化してバンドを得る「一体問題」のコード &nbsp;|&nbsp; 関数名をクリックで詳細 —</p>
+</header>
+
+<main>
+
+  <p class="lead">
+    Wannier90 が出力した実空間ホッピング積分 <code>hop.dat</code>（tight-binding パラメータ
+    <code>t<sub>ij</sub>(R)</code>）を出発点に、逆空間のハミルトニアン
+    <code>H(k) = Σ<sub>R</sub> t<sub>ij</sub>(R) e<sup>-ik·R</sup></code> を組み立て、各 k 点で対角化して
+    バンド固有値と固有ベクトル（ユニタリ行列）を得るまでを担う。ここで作った <code>H(k)</code> と
+    <code>UNITARY</code> が、後段の FLEX（自己エネルギー・感受率）や Eliashberg（ギャップ方程式）の
+    <em>土台</em>になる。
+  </p>
+
+  <div class="note">
+    このページの規約：<b>k メッシュは <code>fftfreq(N, 2π)</code> で生成</b>（後段 FLEX の FFT と同じ並び）、
+    位相はセル並進 <code>R</code> のみ（サブラティス内座標は含めない = convention I）、
+    <code>hop.dat</code> のブロック順は <b>for j, for i（j が外, i が内）</b>。この3点が全関数で共通の前提。
+  </div>
+
+  <h2 class="font-serif">hamiltonian.jl<span class="file-kind">Julia</span></h2>
+  <p class="lead">hop.dat の読み込みと H(k) の構築・対角化・ゲージ固定をまとめたファイル。冒頭の依存パッケージは次のとおり。</p>
+
+  <div class="imports">
+    <div class="code-head">hamiltonian.jl — 冒頭</div>
+<pre># hamiltonian.jl
+# hop.dat の読み込みと H(k) の構築・対角化・ゲージ固定。
+
+using LinearAlgebra
+using Base.Threads
+using CSV, DataFrames
+using FFTW: fftfreq</pre>
+  </div>
+
+  <div class="fn-list">
+
+    <!-- ============ load_Hamiltonian ============ -->
+    <div class="fn-row">
+      <span class="fn-name">load_Hamiltonian<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">hop.dat を読み、正則 k メッシュ上で <code>H(k)=Σ<sub>R</sub> t(R)e<sup>-ik·R</sup></code> を構築（メインの構築関数）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">load_Hamiltonian(hopping_file::String, Nqx, Nqy, Nqz, Norb::Int; return_df=false) &rarr; ENERGY[kx,ky,kz,i,j]</div>
+
+      <h4>概要</h4>
+      <p>
+        <code>hop.dat</code>（列 = <code>Rx Ry Rz Re(t) Im(t)</code>）を読み込み、分割数
+        <code>Nqx×Nqy×Nqz</code> の正則な k メッシュ上で
+        <code>ENERGY[kx,ky,kz,i,j] = Σ<sub>R</sub> t<sub>ij</sub>(R) e<sup>-ik·R</sup></code> を計算して
+        5 次元複素配列で返す。<code>return_df=true</code> なら読み込んだ DataFrame も一緒に返す
+        （後述の <code>hamiltonian_from_hopping_df</code> でそのまま使える）。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">hamiltonian.jl · load_Hamiltonian</div>
+<pre>function load_Hamiltonian(hopping_file::String, Nqx::Int, Nqy::Int, Nqz::Int, Norb::Int; return_df::Bool=false)
+    hopping_df = CSV.read(
+        hopping_file, DataFrame;
+        header=[:x, :y, :z, :hop_real, :hop_cmplx], delim=" ", ignorerepeated=true, silencewarnings=true,
+    )
+    # 虚部列が欠けている行は 0 で埋める
+    hopping_df[!, :hop_cmplx] .= coalesce.(hopping_df[!, :hop_cmplx], 0.0)
+
+    kx, ky, kz = map(N -> fftfreq(N, 2π), [Nqx, Nqy, Nqz])
+    kxg = reshape(kx, 1, Nqx, 1, 1)
+    kyg = reshape(ky, 1, 1, Nqy, 1)
+    kzg = reshape(kz, 1, 1, 1, Nqz)
+    phase = kxg .* hopping_df[:, :x] .+ kyg .* hopping_df[:, :y] .+ kzg .* hopping_df[:, :z]
+    hopping = hopping_df[:, :hop_real] + im * hopping_df[:, :hop_cmplx]
+
+    ENERGY = Array{ComplexF64}(undef, Nqx, Nqy, Nqz, Norb, Norb)
+    Nrvec = size(hopping_df)[1] ÷ Norb^2
+    s, e = 1, Nrvec
+    for j in 1:Norb, i in 1:Norb
+        ENERGY[:, :, :, i, j] .= sum(hopping[s:e, :, :, :] .* exp.(-im * phase[s:e, :, :, :]), dims=1)[1, :, :, :]
+        s += Nrvec
+        e += Nrvec
+    end
+
+    # H = H† のチェック（hop.dat / Norb の指定ミス検出）
+    if !(ENERGY ≈ conj(permutedims(ENERGY, (1, 2, 3, 5, 4))))
+        @warn "Hamiltonian is not Hermitian! Check the hopping file and Norb."
+    end
+
+    return return_df ? (ENERGY, hopping_df) : ENERGY
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>CSV.read(...; header=[:x,:y,:z,:hop_real,:hop_cmplx], delim=" ", ignorerepeated=true)</code> — hop.dat をスペース区切りで読み込む。<code>ignorerepeated=true</code> は「連続する空白を1つの区切りとして扱う」設定で、桁揃えされたテキスト表を安全に読むための肝。</li>
+        <li><code>coalesce.(hopping_df[!, :hop_cmplx], 0.0)</code> — 虚部の列が空（<code>missing</code>）だった行を <b>0.0 で埋める</b>。実数ホッピングだけの hop.dat でも落ちないようにする防御。</li>
+        <li><code>map(N -&gt; fftfreq(N, 2π), [Nqx,Nqy,Nqz])</code> — 各方向の k 点を生成。<code>fftfreq</code> を使うのは、<b>後段 FLEX の FFT と全く同じ順序・規約</b>で k を並べるため。並びは <code>0, 2π/N, …, -2π/N</code> のような順（0 の次が正、後半が負）になる。</li>
+        <li><code>reshape(kx, 1, Nqx, 1, 1)</code> ほか — kx,ky,kz を <b>異なる軸</b>に差し込む。こうすると次の行でブロードキャストするだけで 3 次元 k グリッドの位相が一気に作れる。</li>
+        <li><code>phase = kxg.*x + kyg.*y + kzg.*z</code> — 各 R 行 × 各 k 点の <b>位相 <code>k·R</code></b>。形は <code>(Nrows, Nqx, Nqy, Nqz)</code>（R が第1軸、残り 3 軸が k グリッド）。</li>
+        <li><code>hopping = hop_real + im*hop_cmplx</code> — 複素ホッピング <code>t = Re + i·Im</code> をまとめる。</li>
+        <li><code>Nrvec = size(...)[1] ÷ Norb^2</code> — 全行数を <code>Norb²</code> で割って、<b>1 軌道ペアあたりの R ベクトル数</b>を求める。<code>÷</code> は整数除算。</li>
+        <li><code>for j in 1:Norb, i in 1:Norb</code> + <code>s, e</code> スライス — hop.dat の<b>ブロック順（j が外, i が内）</b>に合わせて <code>Norb²</code> 個のブロックを順に切り出す。<code>s:e</code> が「今のペア (i,j) の R ブロック」。ループ末尾で <code>s,e</code> を <code>Nrvec</code> ずつ進める。</li>
+        <li><code>sum(hopping[s:e] .* exp.(-im*phase[s:e]), dims=1)</code> — R について和を取り <code>H<sub>ij</sub>(k)=Σ<sub>R</sub> t e<sup>-ik·R</sup></code> を得る。<code>[1,:,:,:]</code> で潰れた R 軸を落として <code>(Nqx,Nqy,Nqz)</code> に整形。</li>
+        <li><code>ENERGY ≈ conj(permutedims(ENERGY, (1,2,3,5,4)))</code> — 最後の 2 軸（軌道 i,j）を入れ替えて共役、すなわち <code>H(k)†</code> と一致するか＝<b>エルミート性</b>を確認。ずれていれば <code>Norb</code> か hop.dat の指定ミスとして警告。</li>
+        <li><code>return return_df ? (ENERGY, hopping_df) : ENERGY</code> — フラグ次第で DataFrame も返す三項演算。</li>
+      </ul>
+
+      <div class="warn-box">
+        <b>つまずきポイント：</b> ブロック順が「j 外・i 内」である前提。ここを取り違える（i 外・j 内で読む）と <code>H</code> が非エルミートになり、末尾の警告が出る。<code>Norb</code> の値ミスでも全行数が <code>Norb²</code> で割り切れず結果が壊れるので、警告が出たらまずこの 2 つを疑う。
+      </div>
+
+      <div class="related">関連：<code>hamiltonian_from_hopping_df</code>（同じ規約で k-path 用）／ <code>diagonalize_Hamiltonian</code>（この ENERGY を対角化）</div>
+    </div>
+
+    <!-- ============ hamiltonian_from_hopping_df ============ -->
+    <div class="fn-row">
+      <span class="fn-name">hamiltonian_from_hopping_df<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">任意の k 点列（k-path）上で H(k) を構築 — バンド図用</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">hamiltonian_from_hopping_df(hopping_df, Norb::Int, k_cart::AbstractMatrix) &rarr; Hk[Nk,Norb,Norb]</div>
+
+      <h4>概要</h4>
+      <p>
+        正則メッシュではなく、<b>任意の k 点列</b> <code>k_cart = 2π·k_frac</code>（<code>Nk×3</code>）上で
+        <code>H(k)</code> を作る。主に高対称点を結ぶ <b>k-path 上のバンド計算</b>に使う。位相・ブロック順は
+        <code>load_Hamiltonian</code> と完全に同一で、実装だけ「ブロードキャスト＋sum」から「行列積」に替えたもの。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">hamiltonian.jl · hamiltonian_from_hopping_df</div>
+<pre>function hamiltonian_from_hopping_df(hopping_df, Norb::Int, k_cart::AbstractMatrix{&lt;:Real})
+    Nk = size(k_cart, 1)
+    x = Vector{Float64}(hopping_df[:, :x])
+    y = Vector{Float64}(hopping_df[:, :y])
+    z = Vector{Float64}(hopping_df[:, :z])
+    hop = Vector{ComplexF64}(hopping_df[:, :hop_real] .+ im .* hopping_df[:, :hop_cmplx])
+
+    total_rows = length(hop)
+    if total_rows % (Norb^2) != 0
+        throw(ArgumentError("hopping_df rows ($total_rows) is not divisible by Norb^2 ($(Norb^2)). Check Norb and hopping file."))
+    end
+    Nrvec = total_rows ÷ (Norb^2)
+
+    Hk = Array{ComplexF64}(undef, Nk, Norb, Norb)
+    s = 1
+    for j in 1:Norb, i in 1:Norb
+        e = s + Nrvec - 1
+        r = hcat(@view(x[s:e]), @view(y[s:e]), @view(z[s:e]))  # Nrvec×3
+        phase = r * transpose(k_cart)                          # Nrvec×Nk
+        expp = exp.(-im .* phase)
+        vals = transpose(expp) * @view(hop[s:e])               # Nk
+        @views Hk[:, i, j] .= vals
+        s = e + 1
+    end
+    return Hk
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>hopping_df</code> は <code>load_Hamiltonian(...; return_df=true)</code> が返した DataFrame をそのまま渡す想定。<code>k_cart</code> は <b>デカルト（=2π 倍済み）</b>の k 点並び <code>Nk×3</code>。</li>
+        <li><code>x, y, z, hop</code> を <code>Vector</code> に取り出す — DataFrame から生配列にしておき、以降の行列演算を速くする。</li>
+        <li><code>if total_rows % (Norb^2) != 0 … throw(ArgumentError(...))</code> — 行数が <code>Norb²</code> で割り切れなければ、<code>Norb</code> か hop.dat が不整合だと判断して<b>即エラー停止</b>。<code>load_Hamiltonian</code> の「警告」より厳しく、早期に気づける。</li>
+        <li><code>for j, for i</code> — ここも<b>ブロック順は j 外・i 内</b>で共通。<code>s, e</code> で今のペアの R ブロックを切り出す。</li>
+        <li><code>r = hcat(x[s:e], y[s:e], z[s:e])</code> — 今のブロックの R ベクトルを <code>Nrvec×3</code> 行列に。<code>@view</code> はコピーを作らず参照するだけ（メモリ節約）。</li>
+        <li><code>phase = r * transpose(k_cart)</code> — <code>(Nrvec×3)·(3×Nk) = Nrvec×Nk</code> の行列積で、全 R × 全 k の内積 <code>k·R</code> を一括計算。</li>
+        <li><code>vals = transpose(expp) * hop[s:e]</code> — <code>(Nk×Nrvec)·(Nrvec) = Nk</code>。この行列積が <b>R についての和</b>そのもので、各 k の <code>H<sub>ij</sub>(k)</code> を与える。</li>
+        <li><code>@views Hk[:, i, j] .= vals</code> — 結果を格納。<code>@views</code> で右辺スライスの一時配列生成を抑える。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>load_Hamiltonian との違い：</b> 中身の数式は同一（同じ位相・同じブロック順）。違うのは「正則メッシュを 4 次元ブロードキャストで一気に作る」か「任意の k 列を行列積で作る」かだけ。前者は FLEX 用の格子データ、後者は<b>バンド図の滑らかな k-path</b> 用と役割を分けている。
+      </div>
+
+      <div class="related">関連：<code>load_Hamiltonian</code>（return_df=true で df を供給）／ <code>diagonalize_Hk</code>（この Hk を対角化）</div>
+    </div>
+
+    <!-- ============ diagonalize_Hamiltonian ============ -->
+    <div class="fn-row">
+      <span class="fn-name">diagonalize_Hamiltonian<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">格子 H(k)（＋任意で静的自己エネルギー）を各 k で対角化 → バンドと固有ベクトル</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">diagonalize_Hamiltonian(ENERGY; SIGMA=nothing) &rarr; (ENERGY_diag[kx,ky,kz,band], UNITARY[kx,ky,kz,:,band])</div>
+
+      <h4>概要</h4>
+      <p>
+        <code>load_Hamiltonian</code> が返した 5 次元 <code>ENERGY</code> を各 k 点で対角化し、バンド固有値
+        <code>ENERGY_diag</code> と固有ベクトル <code>UNITARY</code> を返す。オプションで <b>静的自己エネルギー</b>
+        <code>self0</code>（FLEX の <code>SIGMA</code> の最低松原成分をエルミート化したもの）を <code>H(k)</code> に足してから
+        対角化でき、繰り込まれた準粒子バンドが得られる。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">hamiltonian.jl · diagonalize_Hamiltonian</div>
+<pre>function diagonalize_Hamiltonian(ENERGY::Array{ComplexF64,5}; SIGMA::Union{Array{ComplexF64,6},Nothing}=nothing)
+    Nqx, Nqy, Nqz, No, _ = size(ENERGY)
+    Nq = Nqx * Nqy * Nqz
+    ENERGY_diag = Array{Float64,4}(undef, Nqx, Nqy, Nqz, No)
+    UNITARY = Array{ComplexF64,5}(undef, Nqx, Nqy, Nqz, No, No)
+    ENERGY_diag_view = reshape(ENERGY_diag, Nq, No)
+    UNITARY_view = reshape(UNITARY, Nq, No, No)
+    ENERGY_view = reshape(ENERGY, Nq, No, No)
+
+    flag = SIGMA !== nothing
+    if flag
+        SIGMA_view = reshape(SIGMA, size(SIGMA)[1], Nq, No, No)
+        self0 = Array{ComplexF64}(undef, Nq, No, No)
+        for j in 1:No, i in 1:No
+            self0[:, i, j] .= 0.5 * (SIGMA_view[1, :, i, j] + conj(SIGMA_view[1, :, j, i]))
+        end
+    end
+
+    @threads for q in 1:Nq
+        if flag
+            @views self0[q, :, :] .+= ENERGY_view[q, :, :]
+            w, v = eigen(self0[q, :, :])
+        else
+            w, v = eigen(ENERGY_view[q, :, :])
+        end
+        ENERGY_diag_view[q, :] .= real.(w)
+        UNITARY_view[q, :, :] .= v
+    end
+    return ENERGY_diag, UNITARY
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>Nqx,Nqy,Nqz,No,_ = size(ENERGY)</code> — メッシュ寸法と軌道数 <code>No</code> を取り出す（最後の軸は同じ <code>No</code> なので <code>_</code> で捨てる）。<code>Nq</code> は全 k 点数。</li>
+        <li><code>reshape(..., Nq, No, No)</code> 系 — 5 次元配列を <b>コピーせず</b>「k を 1 本に潰した」ビューにする。以降 <code>q</code> の 1 重ループで全 k を回せる。</li>
+        <li><code>flag = SIGMA !== nothing</code> — 自己エネルギーが渡されたかの判定。渡されなければ純粋な <code>H(k)</code> を対角化する（＝非相互作用バンド）。</li>
+        <li><code>self0[:,i,j] .= 0.5*(Σ[1,:,i,j] + conj(Σ[1,:,j,i]))</code> — <b>静的自己エネルギー</b>。最低松原周波数 <code>[1]</code> の <code>Σ</code> を <code>½(Σ + Σ†)</code> で<b>エルミート化</b>して取り出す（数値誤差で崩れた対称性をならす）。</li>
+        <li><code>@threads for q in 1:Nq</code> — k 点ごとに<b>スレッド並列</b>で対角化。各 k は独立なので素直に並列化できる。</li>
+        <li><code>self0[q] .+= ENERGY_view[q]</code> → <code>eigen(self0[q])</code> — <code>H(k)+self0</code> を対角化（flag=true）。<code>flag=false</code> なら <code>eigen(H(k))</code> をそのまま。</li>
+        <li><code>ENERGY_diag_view[q,:] .= real.(w)</code> — 固有値 <code>w</code> の実部をバンドとして格納。<code>eigen</code> は一般（非エルミート可）の対角化なので、実バンドは <code>real</code> を取って確定させる。</li>
+        <li><code>UNITARY_view[q,:,:] .= v</code> — 固有ベクトル行列 <code>v</code> を格納。列 <code>UNITARY[...,:,band]</code> が各バンドの固有ベクトル。</li>
+      </ul>
+
+      <div class="warn-box">
+        <b>なぜ <code>Hermitian</code> を使わないか：</b> <code>self0</code> を足すと（自己エネルギーの反エルミート成分などで）厳密なエルミート行列でなくなり得るため、汎用の <code>eigen</code> を使い固有値は <code>real</code> で確定させている。純粋な一体バンドだけが必要なら、次の <code>diagonalize_Hk</code> のように <code>Hermitian</code> を明示する方が数値的に安定。
+      </div>
+
+      <div class="related">関連：<code>load_Hamiltonian</code>（入力 ENERGY を供給）／ <code>fix_unitary_gauge!</code>（UNITARY の位相を整える）／ FLEX の <code>SIGMA</code></div>
+    </div>
+
+    <!-- ============ diagonalize_Hk ============ -->
+    <div class="fn-row">
+      <span class="fn-name">diagonalize_Hk<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">k-path 用の H(k) リスト（Nk×Norb×Norb）を Hermitian 対角化 → E, U</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">diagonalize_Hk(Hk::Array{ComplexF64,3}; hermitize=true) &rarr; (E[Nk,Norb], U[Nk,Norb,Norb])</div>
+
+      <h4>概要</h4>
+      <p>
+        <code>hamiltonian_from_hopping_df</code> が作った <code>Hk</code>（<code>Nk×Norb×Norb</code>）を各 k で対角化して、
+        バンド <code>E</code> と固有ベクトル <code>U</code> を返す。<b>バンド図を描く</b>ときの対角化係。<code>Hermitian</code>
+        型を明示して対角化するので、実固有値・直交固有ベクトルが保証され数値的に安定。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">hamiltonian.jl · diagonalize_Hk</div>
+<pre>function diagonalize_Hk(Hk::Array{ComplexF64,3}; hermitize::Bool=true)
+    Nk, Norb, _ = size(Hk)
+    E = Array{Float64}(undef, Nk, Norb)
+    U = Array{ComplexF64}(undef, Nk, Norb, Norb)
+    for ik in 1:Nk
+        H = @view(Hk[ik, :, :])
+        Hmat = hermitize ? (H + H') .* 0.5 : H
+        F = eigen(Hermitian(Matrix(Hmat)))
+        E[ik, :] .= F.values
+        U[ik, :, :] .= F.vectors
+    end
+    return E, U
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>Nk, Norb, _ = size(Hk)</code> — k 点数と軌道数を取得。</li>
+        <li><code>H = @view(Hk[ik, :, :])</code> — <code>ik</code> 番目の k の <code>Norb×Norb</code> 行列を参照（コピーなし）。</li>
+        <li><code>Hmat = hermitize ? (H + H').*0.5 : H</code> — <code>hermitize=true</code> なら <code>½(H+H†)</code> で<b>強制的にエルミート化</b>。数値誤差で崩れた対称性をならしてから対角化する保険。</li>
+        <li><code>eigen(Hermitian(Matrix(Hmat)))</code> — <code>Hermitian</code> 型でラップして対角化。<b>実固有値・直交する固有ベクトル</b>が保証され、<code>diagonalize_Hamiltonian</code> の汎用 <code>eigen</code> より安定・高速。</li>
+        <li><code>E[ik,:] .= F.values</code> / <code>U[ik,:,:] .= F.vectors</code> — 固有値・固有ベクトルを格納。<code>Hermitian</code> 経由なので固有値は昇順に並ぶ。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>使い分け：</b> 格子（FLEX 用の正則メッシュ・自己エネルギー込み）なら <code>diagonalize_Hamiltonian</code>、
+        バンド図（k-path・一体のみ）なら <code>diagonalize_Hk</code>。後者は <code>Hermitian</code> で固有値がソート済みになるので、そのまま線でつないでバンドが描ける。
+      </div>
+
+      <div class="related">関連：<code>hamiltonian_from_hopping_df</code>（入力 Hk を供給）／ <code>diagonalize_Hamiltonian</code>（格子版）</div>
+    </div>
+
+    <!-- ============ fix_unitary_gauge! ============ -->
+    <div class="fn-row">
+      <span class="fn-name">fix_unitary_gauge!<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">固有ベクトルの位相（ゲージ）を固定 — k ごとのランダム位相を除去（in-place）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">fix_unitary_gauge!(UNITARY::Array{ComplexF64,5})   # 破壊的：UNITARY を直接書き換える</div>
+
+      <h4>概要</h4>
+      <p>
+        各固有ベクトルの<b>全体位相の不定性（ゲージ）を固定</b>する。具体的には「絶対値が最大の成分の位相を 0 に合わせる」。
+        <code>eigen</code> が返す固有ベクトルは <code>e<sup>iθ</sup></code> 倍の自由度が k ごとにバラバラなので、これを揃えることで
+        バンド／固有ベクトルが k に対して滑らかにつながるようにする。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">hamiltonian.jl · fix_unitary_gauge!</div>
+<pre>function fix_unitary_gauge!(UNITARY::Array{ComplexF64,5})
+    Nqx, Nqy, Nqz, Norb, _ = size(UNITARY)
+    @threads for z in 1:Nqz
+        for y in 1:Nqy, x in 1:Nqx
+            for b in 1:Norb
+                v = UNITARY[x, y, z, :, b]
+                idx = argmax(abs.(v))
+                theta = angle(v[idx])
+                UNITARY[x, y, z, :, b] .*= exp(-im * theta)
+            end
+        end
+    end
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li>関数名末尾の <code>!</code> は Julia の慣習で <b>「引数を破壊的に書き換える（in-place）」</b>ことを表す。戻り値ではなく <code>UNITARY</code> 自体が更新される。</li>
+        <li><code>@threads for z … for y,x … for b</code> — 全 k 点 × 全バンド <code>b</code> を走査（<code>z</code> ループをスレッド並列化）。</li>
+        <li><code>v = UNITARY[x,y,z,:,b]</code> — バンド <code>b</code> の固有ベクトルを取り出す。</li>
+        <li><code>idx = argmax(abs.(v))</code> — <b>絶対値が最大の成分</b>の位置。位相の基準にこの成分を選ぶ（振幅が大きく数値的に安定な成分）。</li>
+        <li><code>theta = angle(v[idx])</code> — その基準成分の位相 <code>θ</code>。</li>
+        <li><code>UNITARY[...] .*= exp(-im*theta)</code> — ベクトル全体に <code>e<sup>-iθ</sup></code> を掛け、基準成分を<b>実正</b>にして位相を固定。</li>
+      </ul>
+
+      <div class="warn-box">
+        <b>注意：</b> これは「最大成分基準」の簡便なゲージ固定で、k 全域での厳密に滑らかな接続（Berry 接続の連続化）を保証するものではない。ただし k ごとのランダム位相を除くには実用上十分で、可視化や後段処理の前処理として使う。
+      </div>
+
+      <div class="related">関連：<code>diagonalize_Hamiltonian</code>（UNITARY を生成）／ <code>diagonalize_Hk</code></div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <b>全体の流れ：</b>
+    <code>load_Hamiltonian</code>（hop.dat → 格子 H(k)）→ <code>diagonalize_Hamiltonian</code>（各 k で対角化）→
+    <code>fix_unitary_gauge!</code>（位相を整える）が FLEX/Eliashberg へ渡す標準ルート。
+    バンド図を描くときは <code>load_Hamiltonian(...; return_df=true)</code> →
+    <code>hamiltonian_from_hopping_df</code>（k-path）→ <code>diagonalize_Hk</code> の別ルートを使う。
+  </div>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ — Nonint</p>
+</footer>
+
+<script>
+  document.querySelectorAll('.fn-row').forEach(function (row) {
+    row.addEventListener('click', function () {
+      row.classList.toggle('open');
+    });
+  });
+</script>
+
+</body>
+</html>
