@@ -7,6 +7,7 @@
     { path: 'vasp/vasp-workflow.html',             title: '計算の流れ',               section: 'VASP' },
     { path: 'vasp/vasp-kpoints.html',              title: 'k 点サンプリング',          section: 'VASP' },
     { path: 'vasp/vasp-tips.html',                 title: 'トラブルシューティング',    section: 'VASP' },
+    { path: 'vasp/vasp-phonopy.html',              title: 'フォノン計算（phonopy）',   section: 'VASP' },
     { path: 'flex/flex-overview.html',             title: 'FLEXとは',                 section: 'FLEX計算' },
     { path: 'flex/flex-selfenergy.html',           title: '自己エネルギーとGreen関数', section: 'FLEX計算' },
     { path: 'flex/flex-susceptibility.html',       title: '感受率・有効相互作用',      section: 'FLEX計算' },
