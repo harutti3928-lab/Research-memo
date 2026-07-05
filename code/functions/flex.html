@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FLEX — コード解説（準備中）</title>
+  <title>FLEX — 自己エネルギー・感受率・自己無撞着ループ | コード解説</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; }
-    body { margin: 0; padding: 0; background-color: #fcfbfa; color: #2c2a29;
+    body {
+      margin: 0; padding: 0;
+      background-color: #fcfbfa; color: #2c2a29;
       font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
-      line-height: 1.9; -webkit-font-smoothing: antialiased; }
+      line-height: 1.9; -webkit-font-smoothing: antialiased;
+    }
     .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
     header { max-width: 820px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
     .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
@@ -17,11 +20,85 @@
     header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
     header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 0.5px; }
     main { max-width: 820px; margin: 0 auto; padding: 48px 24px 100px; }
-    code { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    h2 {
+      font-size: 14pt; font-weight: 600; color: #2c2a29;
+      margin: 46px 0 8px; letter-spacing: 0.4px;
+      border-left: 3px solid #4a69b5; padding-left: 14px;
+    }
+    h2 .file-kind { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8.5pt; color: #96938f; font-weight: 500; letter-spacing: 0.5px; margin-left: 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
     .lead { font-size: 10.5pt; color: #4a4845; margin: 4px 0 24px; }
+    code { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 16px 18px; border-radius: 4px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9pt; overflow-x: auto; margin: 16px 0; line-height: 1.7; }
     .note { background: #eef1f9; border-left: 3px solid #4a69b5; padding: 14px 18px; margin: 22px 0; font-size: 10pt; color: #2c2a29; border-radius: 0 4px 4px 0; }
-    .placeholder { border: 1px dashed #cfcabf; border-radius: 6px; padding: 30px 26px; text-align: center; color: #96938f; font-size: 10.5pt; background: #faf8f5; }
     footer { max-width: 820px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+
+    /* ── file-level import banner ─────────────── */
+    .imports { margin: 14px 0 30px; border: 1px solid #e3e0da; border-radius: 6px; overflow: hidden; }
+    .imports .code-head { background: #edeae4; padding: 6px 14px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .imports pre { margin: 0; border-radius: 0; background: #fbfaf8; }
+
+    /* ── function list ────────────────────────── */
+    .fn-list { margin: 6px 0 8px; border-top: 1px solid #e6e4e0; }
+    .fn-row {
+      cursor: pointer; padding: 15px 8px 15px 6px;
+      border-bottom: 1px solid #ece9e4; transition: background 0.15s;
+      display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    }
+    .fn-row:hover { background: #f5f3ef; }
+    .fn-name {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 11pt; font-weight: 600; color: #1a3a6a; letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    .fn-ind { font-size: 7pt; color: #b0a898; margin-left: 5px; transition: transform 0.2s ease; display: inline-block; vertical-align: middle; }
+    .fn-row.open .fn-ind { transform: rotate(90deg); }
+    .fn-sub { font-size: 9.5pt; color: #73706c; flex: 1; min-width: 220px; }
+
+    /* ── detail panel ─────────────────────────── */
+    .fn-detail {
+      display: none; background: #f9f7f4; border-left: 3px solid #4a69b5;
+      padding: 22px 26px; margin: 0 0 2px; animation: detailIn 0.18s ease-out;
+    }
+    .fn-row.open + .fn-detail { display: block; }
+    @keyframes detailIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .fn-detail h4 { font-size: 10pt; font-weight: 600; color: #2c2a29; margin: 20px 0 8px; letter-spacing: 0.3px; }
+    .fn-detail h4:first-of-type { margin-top: 0; }
+    .fn-detail p { font-size: 10pt; margin: 0 0 10px; color: #3a3836; }
+    .syntax-box {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 9pt; background: #edeae4; border-radius: 3px;
+      padding: 10px 14px; margin: 0 0 4px; color: #2c2a29; overflow-x: auto;
+    }
+    .code-wrap { margin: 12px 0 4px; border: 1px solid #e3e0da; border-radius: 5px; overflow: hidden; }
+    .code-head { background: #edeae4; padding: 5px 13px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .code-wrap pre { margin: 0; border-radius: 0; background: #fbfaf8; font-size: 8.7pt; line-height: 1.68; padding: 13px 15px; }
+
+    /* ── "読み方" mapping list ────────────────── */
+    .read-list { list-style: none; padding: 0; margin: 6px 0 4px; }
+    .read-list > li { position: relative; padding: 7px 0 7px 18px; font-size: 9.8pt; color: #3a3836; border-bottom: 1px dashed #e7e3dc; }
+    .read-list > li:last-child { border-bottom: none; }
+    .read-list > li::before { content: "▸"; position: absolute; left: 0; top: 8px; color: #b0a898; font-size: 8pt; }
+    .read-list code { font-size: 8.9pt; color: #1a3a6a; background: #edeae4; }
+    .read-list b { color: #253a6a; }
+
+    .warn-box {
+      background: #fef9ee; border-left: 3px solid #d4a017;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #5a4a1a;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .tip-box {
+      background: #eef7f0; border-left: 3px solid #4a8a5a;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #234a30;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .related { margin-top: 16px; padding-top: 10px; border-top: 1px solid #e3ded6; font-size: 9pt; color: #73706c; }
+    .related code { font-size: 8.9pt; color: #1a3a6a; }
+
+    /* ── SCF ループ図 ─────────────────────────── */
+    .flow { margin: 10px 0 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 9pt; }
+    .flow .step { font-family: "SFMono-Regular","Consolas","Menlo",monospace; background: #edeae4; border: 1px solid #e0dcd3; border-radius: 4px; padding: 5px 10px; color: #1a3a6a; }
+    .flow .arrow { color: #b0a898; font-size: 10pt; }
   </style>
   <link rel="stylesheet" href="../../site.css">
 </head>
@@ -29,24 +106,643 @@
 
 <header>
   <div class="breadcrumb"><a href="../../index.html">研究メモ</a> &rsaquo; コード解説 &rsaquo; FLEX</div>
-  <h1 class="font-serif">FLEX — コード解説</h1>
-  <p class="font-serif">— 自己エネルギー・感受率・自己無撞着ループを担う関数群 &nbsp;|&nbsp; 関数名をクリックで詳細 —</p>
+  <h1 class="font-serif">FLEX — 自己エネルギー・感受率・自己無撞着ループ</h1>
+  <p class="font-serif">— Green 関数・χ<sub>0</sub>・有効相互作用・Σ を FFT 畳み込みで回す FLEX コア &nbsp;|&nbsp; 関数名をクリックで詳細 —</p>
 </header>
 
 <main>
+
   <p class="lead">
-    FLEX（Fluctuation Exchange Approximation）計算に使う関数の解説ページ。
-    Green 関数・感受率・有効相互作用・自己エネルギーの構築と、それらの自己無撞着ループを扱う予定。
+    FLEX（Fluctuation Exchange Approximation）の<b>自己無撞着ループの心臓部</b>。
+    <a href="nonint.html">Nonint</a> の <code>H(k)</code> と <a href="fft.html">FFT</a> の主要配列・プランを土台に、
+    <code>G → χ<sub>0</sub> → χ<sub>s</sub>/χ<sub>c</sub> → V<sub>eff</sub> → Σ</code> を 1 反復として、<code>μ</code> をフィリング一定に
+    更新しながら <code>Σ</code> が収束するまで回す。畳み込み（<code>χ<sub>0</sub>=GG</code>、<code>Σ=V<sub>eff</sub>G</code>）は
+    <code>(r,τ)</code> の<b>要素積</b>に落として FFT で往復する（<a href="fft.html"><code>kw2rt!</code>/<code>rt2kw!</code></a>）。
   </p>
-  <div class="placeholder">（準備中）関数を追加していきます。</div>
-  <div class="note">
-    参考の作り方は <a href="nonint.html">Nonint</a> と同じ：各関数を「概要 → 実際のコード → 読み方 → 注意点」で展開表示にします。
+
+  <div class="flow">
+    <span class="step">calc_GREEN!</span><span class="arrow">&rarr;</span>
+    <span class="step">calc_CHI0!</span><span class="arrow">&rarr;</span>
+    <span class="step">calc_Veff!</span><span class="arrow">&rarr;</span>
+    <span class="step">calc_SIGMA!</span><span class="arrow">&rarr;</span>
+    <span class="step">calc_mu</span><span class="arrow">&#8635;</span>
+    <span class="step">収束判定</span>
   </div>
+
+  <div class="note">
+    このページの規約：<b>フェルミオン Σ・G は正周波数 <code>Nw</code> 本＋折り返しで <code>2Nw</code></b>。
+    <code>G(-iω)=G†(iω)</code> の関係で負周波数を埋める。<b>ボゾン χ・V<sub>eff</sub> は <code>2Nw</code> 本</b>で
+    <code>iν=0</code> が先頭、<code>Nw+1</code> が折り返し点（エルミート化）、負側は <code>V<sub>eff</sub>(-iν)=V<sub>eff</sub>†(iν)</code>。
+    軌道は<b>複合添字 <code>mask_inds</code></b>（<code>(mask-1)÷No+1</code>, <code>(mask-1)%No+1</code> で軌道ペアに展開）。
+    <b>FFT は副作用を持つ</b>：<code>calc_CHI0!</code> は <code>G</code> を <code>(r,τ)</code> 表示のまま残し、次段の <code>calc_SIGMA!</code> が
+    それを前提に使う。数値ロジックは検証済み実装をそのまま移植。
+  </div>
+
+  <h2 class="font-serif">flex.jl<span class="file-kind">Julia</span></h2>
+  <p class="lead">FLEX 自己無撞着計算のコア。冒頭の依存パッケージと基礎量は次のとおり。</p>
+
+  <div class="imports">
+    <div class="code-head">flex.jl — 冒頭</div>
+<pre># flex.jl
+# FLEX（揺らぎ交換近似）の自己無撞着計算コア。
+#   G(k,iω)  = [iω + μ - H(k) - Σ]^-1
+#   χ0(q,iν) = -T/N Σ_k G G           （FFT で r,τ の積に落とす）
+#   χ_s/χ_c  = χ0 (1 ∓ U χ0)^-1
+#   Veff     = 3/2 U_s χ_s U_s + 1/2 U_c χ_c U_c - 1/4(U_s+U_c)χ0(U_s+U_c) + ...
+#   Σ(k,iω)  = T/N Σ Veff G           （FFT）→ 混合して更新
+# μ はフィリングを保つよう毎反復更新する。
+
+using LinearAlgebra
+using Base.Threads
+using Roots
+using StatsFuns: logistic</pre>
+  </div>
+
+  <div class="fn-list">
+
+    <!-- ============ matsubara_fermion ============ -->
+    <div class="fn-row">
+      <span class="fn-name">matsubara_fermion<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">フェルミオン松原周波数 <code>iω<sub>n</sub> = iπT(2n-1)</code> を <code>Nw</code> 本作る</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">matsubara_fermion(Nw::Int, temperature::Real) &rarr; Vector{ComplexF64}（長さ Nw）</div>
+
+      <h4>概要</h4>
+      <p>
+        正のフェルミオン松原周波数 <code>iω<sub>n</sub> = iπT(2n-1)</code>（<code>n=1..Nw</code>）を並べた複素ベクトルを返す 1 行関数。
+        <code>calc_GREEN!</code> や <code>calc_mu</code> で <code>G=[iω+μ-H-Σ]^{-1}</code> の対角に足す周波数として使う。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">flex.jl · matsubara_fermion</div>
+<pre>matsubara_fermion(Nw::Int, temperature::Real) = Array(im * π * temperature * range(1, 2 * Nw, step=2))</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>range(1, 2*Nw, step=2)</code> — <code>1, 3, 5, …, 2Nw-1</code>、すなわち <code>2n-1</code>（<code>n=1..Nw</code>）の奇数列。フェルミオンは<b>奇数×πT</b>。</li>
+        <li><code>im * π * temperature * (…)</code> — 各要素に <code>iπT</code> を掛けて <code>iω<sub>n</sub></code> に。負周波数は <code>G(-iω)=G†(iω)</code> で後から埋めるので、ここでは<b>正側 <code>Nw</code> 本だけ</b>。</li>
+        <li><code>Array(...)</code> — <code>range</code> の遅延オブジェクトを実体の配列に変換。</li>
+      </ul>
+
+      <div class="related">関連：<code>calc_GREEN!</code>・<code>calc_mu</code>（この周波数を対角に足す）</div>
+    </div>
+
+    <!-- ============ calc_GREEN! ============ -->
+    <div class="fn-row">
+      <span class="fn-name">calc_GREEN!<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>G(k,iω) = [iω + μ - H(k) - Σ]<sup>-1</sup></code> を各 k・各周波数で構築（in-place）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">calc_GREEN!(G, SIGMA, ENERGY, MATSUBARA, mu)   # 破壊的：G を書き込む</div>
+
+      <h4>概要</h4>
+      <p>
+        Dyson 方程式の <code>G(k,iω) = [iω + μ - H(k) - Σ(k,iω)]<sup>-1</sup></code> を各 <code>k</code>・各正周波数
+        <code>w</code> で <code>No×No</code> 行列の逆行列として計算し、負周波数側は <code>G(-iω)=G†(iω)</code> で埋める。
+        <code>SIGMA</code> は正周波数 <code>Nw</code> 本、<code>G</code> は折り返し込みの <code>2Nw</code> 本。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">flex.jl · calc_GREEN!</div>
+<pre>function calc_GREEN!(G::Array{ComplexF64,6}, SIGMA::Array{ComplexF64,6}, ENERGY::Array{ComplexF64,5}, MATSUBARA::Array{ComplexF64,1}, mu::Float64)
+    Nw, Nqx, Nqy, Nqz, No, _ = size(SIGMA)
+    Nq = Nqx * Nqy * Nqz
+    SIGMA_view = reshape(SIGMA, Nw, Nq, No, No)
+    ENERGY_view = reshape(ENERGY, Nq, No, No)
+    G_view = reshape(G, 2 * Nw, Nq, No, No)
+
+    dind = 1:No+1:No*No
+    @threads for q in 1:Nq
+        local_matrix = Array{ComplexF64}(undef, No, No)
+        @views ENERGY_q = copy(ENERGY_view[q, :, :])
+        for w in 1:Nw
+            @views local_matrix .= -SIGMA_view[w, q, :, :] .- ENERGY_q
+            local_matrix[dind] .+= MATSUBARA[w] + mu
+            G_view[w, q, :, :] .= inv(local_matrix)
+        end
+        for j in 1:No, i in 1:No
+            @views G_view[2*Nw:-1:Nw+1, q, i, j] .= conj(G_view[1:Nw, q, j, i])  # G(-iw) = G†(iw)
+        end
+    end
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>dind = 1:No+1:No*No</code> — <code>No×No</code> 行列の<b>対角の線形インデックス</b>（<code>1, No+2, 2No+3, …</code>）。<code>iω+μ</code> を対角だけに足すために使う。</li>
+        <li><code>local_matrix .= -SIGMA .- ENERGY_q</code> → <code>local_matrix[dind] .+= MATSUBARA[w] + mu</code> — <code>-Σ-H</code> を作り、対角に <code>iω<sub>w</sub>+μ</code> を加えて <code>iω+μ-H-Σ</code> にする。</li>
+        <li><code>G_view[w,q,:,:] .= inv(local_matrix)</code> — 逆行列で <code>G</code>。各 <code>k</code> を <code>@threads</code> 並列、周波数 <code>w</code> は内側ループ。</li>
+        <li><code>G_view[2Nw:-1:Nw+1, q, i, j] .= conj(G_view[1:Nw, q, j, i])</code> — <b><code>G<sub>ij</sub>(-iω) = conj(G<sub>ji</sub>(iω))</code></b>。正周波数から負周波数を折り返しで生成（軌道 <code>i,j</code> も入れ替える点に注意）。</li>
+        <li><code>ENERGY_q = copy(ENERGY_view[q,:,:])</code> — その <code>k</code> の <code>H(k)</code> を一度コピーして周波数ループで使い回す（スライス参照の繰り返しを避ける）。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>符号の由来：</b> <code>ENERGY</code>（<a href="nonint.html">Nonint</a> の <code>H(k)</code>）はエルミートなので <code>-H</code> と <code>iω+μ</code> を組んで逆行列を取れば <code>G</code> になる。<code>Σ</code> を 0 にすれば非相互作用 <code>G<sub>0</sub></code> と一致する（SCF 初回）。
+      </div>
+
+      <div class="related">関連：<code>matsubara_fermion</code>（<code>MATSUBARA</code> を供給）／ <a href="nonint.html">Nonint</a> の <code>ENERGY</code>・<code>SIGMA</code></div>
+    </div>
+
+    <!-- ============ calc_CHI0! ============ -->
+    <div class="fn-row">
+      <span class="fn-name">calc_CHI0!<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">既約感受率 <code>χ<sub>0</sub>(q,iν) = -T/N Σ<sub>k</sub> G G</code> を FFT 畳み込みで（in-place・G を r,τ に残す）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">calc_CHI0!(CHI, G, temperature, FFT_plan, mask_inds=nothing)   # CHI←χ0(k,iν),  G←G(r,τ)（副作用）</div>
+
+      <h4>概要</h4>
+      <p>
+        既約（バブル）感受率 <code>χ<sub>0</sub>(q,iν) = -T/N Σ<sub>k</sub> G(k)G(k+q)</code> を、<code>(r,τ)</code> での
+        <b>要素積 <code>G(r,τ)·G(-r,-τ)</code></b> に落として計算する。<code>kw2rt!(G)</code> で <code>G</code> を <code>(r,τ)</code> に変換 →
+        積を <code>CHI</code> に書く → <code>rt2kw!(CHI)</code> で <code>(q,iν)</code> に戻す。<b>戻ったあとも <code>G</code> は <code>(r,τ)</code> のまま</b>
+        （次段 <code>calc_SIGMA!</code> がそれを使う）。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">flex.jl · calc_CHI0!</div>
+<pre>function calc_CHI0!(CHI::Array{ComplexF64,6}, G::Array{ComplexF64,6}, temperature::Float64, FFT_plan, mask_inds=nothing)
+    Nw2, Nqx, Nqy, Nqz, No, _ = size(G)
+    Nw = Nw2 ÷ 2
+    Nq = Nqx * Nqy * Nqz
+    mask_inds = (mask_inds === nothing) ? (1:No*No) : mask_inds
+    Nco = length(mask_inds)
+    coef = -temperature / Nq
+
+    CHI_view = reshape(CHI, 2 * Nw, Nq, Nco, Nco)
+    G_view = reshape(G, 2 * Nw, Nq, No, No)
+
+    kw2rt!(G, FFT_plan)
+    i1_list = j1_list = (mask_inds .- 1) .÷ No .+ 1
+    i2_list = j2_list = (mask_inds .- 1) .% No .+ 1
+    x_, y_, z_, w_ = map(N -> [1; N:-1:2], (Nqx, Nqy, Nqz, 2 * Nw))
+    xyz_ind2sub = CartesianIndices(Array{Int}(undef, Nqx, Nqy, Nqz))
+    for jj in 1:Nco, ii in 1:Nco
+        i1, i2 = i1_list[ii], i2_list[ii]
+        j1, j2 = j1_list[jj], j2_list[jj]
+        @threads for q in 1:Nq
+            x, y, z = Tuple(xyz_ind2sub[q])
+            xx, yy, zz = x_[x], y_[y], z_[z]
+            for w in 1:Nw2
+                CHI_view[w, q, ii, jj] = coef * G_view[w, q, i1, j1] * G[w_[w], xx, yy, zz, j2, i2]
+            end
+        end
+    end
+    rt2kw!(CHI, FFT_plan)
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>coef = -temperature / Nq</code> — <code>-T/N</code> の前係数。</li>
+        <li><code>kw2rt!(G, FFT_plan)</code> — <code>G</code> を <code>(k,iω)→(r,τ)</code> に<b>その場変換</b>。以降 <code>G</code> は <code>(r,τ)</code>。</li>
+        <li><code>i1_list = (mask_inds .- 1) .÷ No .+ 1</code> / <code>i2_list = (mask_inds .- 1) .% No .+ 1</code> — 複合添字を軌道ペア <code>(i1,i2)</code> に展開（<code>÷</code>=商, <code>%</code>=余り）。<code>mask_inds</code> で計算する軌道成分を絞れる。</li>
+        <li><code>x_,y_,z_,w_ = map(N -&gt; [1; N:-1:2], …)</code> — <code>r→-r</code> と <code>τ→-τ</code> の<b>反転インデックス</b>。<code>2Nw</code> 軸も反転対象。</li>
+        <li><code>CHI = coef * G[w,q,i1,j1] * G[w_[w], -r, j2,i2]</code> — <code>χ<sub>0</sub>(r,τ) ∝ G(r,τ)·G(-r,-τ)</code> の要素積。第 2 因子が <code>(-r,-τ)</code>（<code>xx,yy,zz,w_[w]</code>）になっているのがバブルの畳み込み。</li>
+        <li><code>rt2kw!(CHI, FFT_plan)</code> — できた <code>χ<sub>0</sub>(r,τ)</code> を <code>(q,iν)</code> に戻す。</li>
+      </ul>
+
+      <div class="warn-box">
+        <b>副作用に注意：</b> この関数を抜けたとき <code>G</code> は <code>(r,τ)</code> 表示のまま残る（元の <code>(k,iω)</code> には戻らない）。これは意図的で、次の <code>calc_SIGMA!</code> が <code>G(r,τ)</code> をそのまま使って <code>Σ=V<sub>eff</sub>G</code> の積を作るため。順番を入れ替えると壊れる。
+      </div>
+
+      <div class="related">関連：<a href="fft.html"><code>kw2rt!</code>/<code>rt2kw!</code></a>（FFT 往復）／ <code>calc_Veff!</code>（この <code>χ<sub>0</sub></code> を受ける）</div>
+    </div>
+
+    <!-- ============ calc_Veff! ============ -->
+    <div class="fn-row">
+      <span class="fn-name">calc_Veff!<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>χ<sub>0</sub></code> から RPA 感受率 <code>χ<sub>s</sub>/χ<sub>c</sub></code> を作り、有効相互作用 <code>V<sub>eff</sub></code> を CHI に上書き</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">calc_Veff!(CHI, U_spin, U_charge; is_Uchi0_scale=false, maxeigval_tol=0.99)   # CHI: χ0 → Veff</div>
+
+      <h4>概要</h4>
+      <p>
+        既約感受率 <code>χ<sub>0</sub></code> から RPA のスピン/電荷感受率
+        <code>χ<sub>s</sub>=χ<sub>0</sub>(1-U<sub>s</sub>χ<sub>0</sub>)<sup>-1</sup></code>、
+        <code>χ<sub>c</sub>=χ<sub>0</sub>(1+U<sub>c</sub>χ<sub>0</sub>)<sup>-1</sup></code> を組み、
+        有効相互作用 <code>V<sub>eff</sub></code> を計算して<b>同じ <code>CHI</code> に上書き</b>する（メモリ節約）。
+        ボゾン周波数の非負側 <code>1:Nw+1</code> だけ計算し、負側は <code>V<sub>eff</sub>(-iν)=V<sub>eff</sub>†(iν)</code> で埋める。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">flex.jl · calc_Veff!</div>
+<pre>function calc_Veff!(CHI::Array{ComplexF64,6}, U_spin::Array{Float64,2}, U_charge::Array{Float64,2}; is_Uchi0_scale::Bool=false, maxeigval_tol::Float64=0.99)
+    Nw2, Nqx, Nqy, Nqz, Nco, _ = size(CHI)
+    Nw = Nw2 ÷ 2
+    Nq = Nqx * Nqy * Nqz
+    CHI_view = reshape(CHI, Nw2, Nq, Nco, Nco)
+
+    U_spin_scale, U_charge_scale = 1.5 .* U_spin, 0.5 .* U_charge
+    U_cs = (U_spin .+ U_charge) .* 0.5
+    U_term = -0.5 .* U_charge .+ 1.5 .* U_spin
+    dind = diagind(U_cs)
+
+    @threads for q in 1:Nq
+        chi_S = Array{ComplexF64}(undef, Nco, Nco)
+        chi_C = Array{ComplexF64}(undef, Nco, Nco)
+        tmp = Array{ComplexF64}(undef, Nco, Nco)
+        chi0 = Array{ComplexF64}(undef, Nco, Nco)
+        for w in 1:Nw+1
+            @views chi0 .= CHI_view[w, q, :, :]
+
+            # chi_S = chi0 (1 - U_S chi0)^-1
+            tmp .= -U_spin * chi0
+            if is_Uchi0_scale
+                maxeigval = maximum(real.(eigvals(-tmp)))
+                maxeigval > maxeigval_tol &amp;&amp; (tmp .*= maxeigval_tol / maxeigval)
+            end
+            tmp[dind] .+= 1.0
+            chi_S .= chi0
+            rdiv!(chi_S, lu(tmp))
+
+            # chi_C = chi0 (1 + U_C chi0)^-1
+            tmp .= U_charge * chi0
+            if is_Uchi0_scale
+                maxeigval = maximum(real.(eigvals(-tmp)))
+                maxeigval > maxeigval_tol &amp;&amp; (tmp .*= maxeigval_tol / maxeigval)
+            end
+            tmp[dind] .+= 1.0
+            chi_C .= chi0
+            rdiv!(chi_C, lu(tmp))
+
+            # Veff = 3/2 U_S χ_S U_S + 1/2 U_C χ_C U_C - 1/4(U_S+U_C)χ0(U_S+U_C) - 1/2 U_C + 3/2 U_S
+            CHI_view[w, q, :, :] .= (U_spin_scale * chi_S * U_spin) .+
+                                    (U_charge_scale * chi_C * U_charge) .+
+                                    U_term .- (U_cs * chi0 * U_cs)
+        end
+        # Nw+1 には (Veff(iν) + Veff(-iν))/2 を入れる
+        @views tmp .= CHI_view[Nw+1, q, :, :]
+        CHI_view[Nw+1, q, :, :] .+= tmp'
+        CHI_view[Nw+1, q, :, :] .*= 0.5
+        for jj in 1:Nco, ii in 1:Nco
+            # 残りは Veff(-iν) = Veff†(iν)
+            @views CHI_view[2*Nw:-1:Nw+2, q, ii, jj] .= conj(CHI_view[2:Nw, q, jj, ii])
+        end
+    end
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>tmp .= -U_spin * chi0; tmp[dind] .+= 1.0</code> — 分母 <code>1 - U<sub>s</sub>χ<sub>0</sub></code> を組む。<code>dind=diagind</code> は複合行列の対角。</li>
+        <li><code>chi_S .= chi0; rdiv!(chi_S, lu(tmp))</code> — <b>右割り算</b> <code>chi_S = χ<sub>0</sub>·tmp<sup>-1</sup> = χ<sub>0</sub>(1-U<sub>s</sub>χ<sub>0</sub>)<sup>-1</sup></code>。<code>lu</code> で 1 回分解して解く（<code>inv</code> より安定・速い）。電荷側は符号が <code>+</code>。</li>
+        <li><code>is_Uchi0_scale</code> ブロック — <code>U<sub>s</sub>χ<sub>0</sub></code> の最大固有値が <code>maxeigval_tol(=0.99)</code> を超えたら縮小。<b>Stoner 不安定（<code>Uχ<sub>0</sub>→1</code>）で発散するのを防ぐ</b>安全弁。磁気不安定の直前で数値を安定化する。</li>
+        <li><code>U_spin_scale=1.5U<sub>s</sub></code>, <code>U_charge_scale=0.5U<sub>c</sub></code>, <code>U_term=1.5U<sub>s</sub>-0.5U<sub>c</sub></code> — <code>V<sub>eff</sub></code> の各係数を事前計算。</li>
+        <li><code>CHI_view[w,q,:,:] .= 3/2 U<sub>s</sub>χ<sub>s</sub>U<sub>s</sub> + 1/2 U<sub>c</sub>χ<sub>c</sub>U<sub>c</sub> + U_term - U_cs χ<sub>0</sub> U_cs</code> — <code>V<sub>eff</sub></code> をその場で上書き。<code>U_cs=(U<sub>s</sub>+U<sub>c</sub>)/2</code>。</li>
+        <li><code>Nw+1</code> の対称化 — <code>(V+V†)/2</code> で折り返し点をエルミートにならす。</li>
+        <li><code>CHI_view[2Nw:-1:Nw+2, q, ii, jj] .= conj(CHI_view[2:Nw, q, jj, ii])</code> — 負ボゾン側を <code>V<sub>eff</sub>(-iν)=V<sub>eff</sub>†(iν)</code> で生成。</li>
+      </ul>
+
+      <div class="warn-box">
+        <b>周波数の並びに注意：</b> <code>CHI</code>（<code>V<sub>eff</sub></code>）のボゾン軸は <code>iν = 0, 2πTi, 4πTi, …</code>（先頭 <code>iν=0</code>）で、<code>1:Nw+1</code> が非負側、<code>Nw+1</code> が折り返し点、<code>Nw+2:2Nw</code> が負側。ループ上限が <code>Nw+1</code> なのはこのため。フェルミオン（Σ・G）の並びとは別物。
+      </div>
+
+      <div class="related">関連：<code>calc_CHIS_CHIC!</code>（<code>χ<sub>s</sub>/χ<sub>c</sub></code> を別配列に保存する版）／ <code>calc_SIGMA!</code>（この <code>V<sub>eff</sub></code> を使う）</div>
+    </div>
+
+    <!-- ============ calc_CHIS_CHIC! ============ -->
+    <div class="fn-row">
+      <span class="fn-name">calc_CHIS_CHIC!<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>χ<sub>s</sub></code>/<code>χ<sub>c</sub></code> を別配列に保持（プロット・後処理用。V<sub>eff</sub> は作らない）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">calc_CHIS_CHIC!(CHI_S, CHI_C, CHI0, U_spin, U_charge; is_Uchi0_scale=false, maxeigval_tol=0.99)</div>
+
+      <h4>概要</h4>
+      <p>
+        <code>calc_Veff!</code> と同じ RPA 感受率の計算だが、<code>V<sub>eff</sub></code> にまとめず
+        <code>χ<sub>s</sub>=χ<sub>0</sub>(1-U<sub>s</sub>χ<sub>0</sub>)<sup>-1</sup></code> と
+        <code>χ<sub>c</sub>=χ<sub>0</sub>(1+U<sub>c</sub>χ<sub>0</sub>)<sup>-1</sup></code> を<b>それぞれ別配列</b>
+        <code>CHI_S</code>・<code>CHI_C</code> に保存する。SCF には不要で、<b>感受率のプロットや後処理</b>のための版。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">flex.jl · calc_CHIS_CHIC!</div>
+<pre>function calc_CHIS_CHIC!(
+    CHI_S::Array{ComplexF64,6}, CHI_C::Array{ComplexF64,6}, CHI0::Array{ComplexF64,6},
+    U_spin::Array{Float64,2}, U_charge::Array{Float64,2};
+    is_Uchi0_scale::Bool=false, maxeigval_tol::Float64=0.99,
+)
+    Nw2, Nqx, Nqy, Nqz, Nco, _ = size(CHI0)
+    Nw = Nw2 ÷ 2
+    Nq = Nqx * Nqy * Nqz
+
+    CHI0_view = reshape(CHI0, Nw2, Nq, Nco, Nco)
+    CHIS_view = reshape(CHI_S, Nw2, Nq, Nco, Nco)
+    CHIC_view = reshape(CHI_C, Nw2, Nq, Nco, Nco)
+
+    dind = diagind(U_spin)
+    @threads for q in 1:Nq
+        chi_S = Array{ComplexF64}(undef, Nco, Nco)
+        chi_C = Array{ComplexF64}(undef, Nco, Nco)
+        tmp = Array{ComplexF64}(undef, Nco, Nco)
+        chi0 = Array{ComplexF64}(undef, Nco, Nco)
+        for w in 1:Nw+1
+            @views chi0 .= CHI0_view[w, q, :, :]
+
+            tmp .= -U_spin * chi0
+            if is_Uchi0_scale
+                maxeigval = maximum(real.(eigvals(-tmp)))
+                maxeigval > maxeigval_tol &amp;&amp; (tmp .*= maxeigval_tol / maxeigval)
+            end
+            tmp[dind] .+= 1.0
+            chi_S .= chi0
+            rdiv!(chi_S, lu(tmp))
+            @views CHIS_view[w, q, :, :] .= chi_S
+
+            tmp .= U_charge * chi0
+            if is_Uchi0_scale
+                maxeigval = maximum(real.(eigvals(-tmp)))
+                maxeigval > maxeigval_tol &amp;&amp; (tmp .*= maxeigval_tol / maxeigval)
+            end
+            tmp[dind] .+= 1.0
+            chi_C .= chi0
+            rdiv!(chi_C, lu(tmp))
+            @views CHIC_view[w, q, :, :] .= chi_C
+        end
+
+        # 中央周波数（iν=0 の折返し点）を対称化
+        @views tmp .= CHIS_view[Nw+1, q, :, :]
+        CHIS_view[Nw+1, q, :, :] .+= tmp'
+        CHIS_view[Nw+1, q, :, :] .*= 0.5
+        @views tmp .= CHIC_view[Nw+1, q, :, :]
+        CHIC_view[Nw+1, q, :, :] .+= tmp'
+        CHIC_view[Nw+1, q, :, :] .*= 0.5
+
+        for jj in 1:Nco, ii in 1:Nco
+            @views CHIS_view[2*Nw:-1:Nw+2, q, ii, jj] .= conj(CHIS_view[2:Nw, q, jj, ii])
+            @views CHIC_view[2*Nw:-1:Nw+2, q, ii, jj] .= conj(CHIC_view[2:Nw, q, jj, ii])
+        end
+    end
+    return nothing
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li>中身の <code>χ<sub>s</sub>/χ<sub>c</sub></code> の作り方（<code>tmp</code> 組立 → <code>rdiv!(…, lu(tmp))</code> → <code>is_Uchi0_scale</code> の固有値縮小）は <code>calc_Veff!</code> と<b>完全に同一</b>。</li>
+        <li>違いは <b><code>CHIS_view</code>/<code>CHIC_view</code> に別々に格納</b>する点だけ（<code>V<sub>eff</sub></code> に畳まない）。</li>
+        <li>折り返し点 <code>Nw+1</code> の対称化と負側 <code>2Nw:-1:Nw+2 ← conj(2:Nw)</code> も同じ規約。</li>
+        <li><code>return nothing</code> — 戻り値なし（配列を直接書き換える in-place）。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>使い分け：</b> SCF を回すだけなら <code>calc_Veff!</code>（<code>V<sub>eff</sub></code> に上書きしてメモリ節約）。
+        スピン/電荷感受率そのものを<b>図示・解析</b>したいときは <code>calc_CHIS_CHIC!</code> で別配列に取り出す。数値ロジックは共通なので結果は整合する。
+      </div>
+
+      <div class="related">関連：<code>calc_Veff!</code>（同じ RPA を <code>V<sub>eff</sub></code> に畳む版）／ <code>calc_CHI0!</code>（入力 <code>χ<sub>0</sub></code>）</div>
+    </div>
+
+    <!-- ============ calc_SIGMA! ============ -->
+    <div class="fn-row">
+      <span class="fn-name">calc_SIGMA!<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>Σ = T/N Σ V<sub>eff</sub>G</code> を FFT 畳み込みで作り、混合更新＋誤差評価（in-place）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">calc_SIGMA!(CHI, G, SIGMA, temperature, FFT_plan; mask_inds, sub_self0=true, mix_factor=0.3, RPA=false, return_dself=true) &rarr; (abs_err, rel_err)</div>
+
+      <h4>概要</h4>
+      <p>
+        自己エネルギー <code>Σ<sub>13</sub>(r,τ) = T/N Σ<sub>24</sub> V<sub>1234</sub>(r,τ) G<sub>24</sub>(r,τ)</code> を
+        <code>(r,τ)</code> の積で作り、<code>rt2kw!</code> で <code>(k,iω)</code> に戻して <b>混合更新</b>
+        <code>Σ<sub>new</sub> = mix·Σ<sub>cal</sub> + (1-mix)·Σ<sub>old</sub></code> する。入力は
+        <code>CHI=V<sub>eff</sub>(k,iν)</code>・<code>G=G(r,τ)</code>（前段 <code>calc_CHI0!</code> の副作用）・<code>SIGMA=Σ<sub>old</sub></code>。
+        <code>return_dself=true</code> で <b>(絶対誤差, 相対誤差)</b> を返し収束判定に使う。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">flex.jl · calc_SIGMA!（抜粋：本体の畳み込みと内部ヘルパ）</div>
+<pre>function calc_SIGMA!(CHI, G, SIGMA, temperature, FFT_plan;
+                    mask_inds=nothing, sub_self0=true, mix_factor=0.3, RPA=false, return_dself=true)
+    Nw, Nqx, Nqy, Nqz, No, _ = size(SIGMA)
+    Nq = Nqx * Nqy * Nqz
+
+    function _subtract_minimum_iw!(G_view)
+        # 最低松原の実部を引く（第一原理バンド等で使用）。1:Nw のみ操作。
+        self0 = Array{ComplexF64}(undef, Nq, No, No)
+        for j in 1:No, i in 1:No
+            @views self0[:, i, j] .= 0.5 * (G_view[1, :, i, j] + conj(G_view[1, :, j, i]))
+        end
+        for j in 1:No, i in 1:No
+            @threads for q in 1:Nq
+                G_view[1:Nw, q, i, j] .-= self0[q, i, j]
+            end
+        end
+    end
+
+    function _update_SIGMA!(G_view, SIGMA_view, mix_factor, RPA)
+        for j in 1:No, i in 1:No
+            @threads for q in 1:Nq
+                if RPA
+                    @views SIGMA_view[:, q, i, j] .= G_view[1:Nw, q, i, j]; continue
+                end
+                # G の Nw+1:2Nw は未使用なので、誤差 Σ(cal)-Σ(old) を格納
+                @views G_view[2*Nw:-1:Nw+1, q, i, j] .= G_view[1:Nw, q, i, j] - SIGMA_view[:, q, i, j]
+                # Σ(new) = mix*Σ(cal) + (1-mix)*Σ(old)
+                SIGMA_view[:, q, i, j] .*= (1 - mix_factor)
+                @views SIGMA_view[:, q, i, j] .+= mix_factor .* G_view[1:Nw, q, i, j]
+            end
+        end
+    end
+
+    function _eval_err(G_view, avoid_zero_div_factor=1e-10)
+        a_err_list = Vector{Float64}(undef, Nq); r_err_list = Vector{Float64}(undef, Nq)
+        @threads for q in 1:Nq
+            dself_tmp = abs.(G_view[2*Nw:-1:Nw+1, q, :, :])
+            a_err_list[q] = maximum(dself_tmp)
+            dself_tmp ./= abs.(G_view[1:Nw, q, :, :]) .+ avoid_zero_div_factor
+            r_err_list[q] = maximum(dself_tmp)
+        end
+        return maximum(a_err_list), maximum(r_err_list)
+    end
+
+    mask_inds = (mask_inds === nothing) ? (1:No*No) : mask_inds
+    Nco = length(mask_inds)
+    CHI_view = reshape(CHI, 2 * Nw, Nq, Nco, Nco)
+    G_view = reshape(G, 2 * Nw, Nq, No, No)
+    SIGMA_view = reshape(SIGMA, Nw, Nq, No, No)
+    coef = temperature / Nq
+
+    kw2rt!(CHI, FFT_plan)
+    i1_list = j1_list = (mask_inds .- 1) .÷ No .+ 1
+    i2_list = j2_list = (mask_inds .- 1) .% No .+ 1
+    @threads for q in 1:Nq
+        SIGMA_rt_tmp = zeros(ComplexF64, 2 * Nw, No, No)
+        for jj in 1:Nco, ii in 1:Nco
+            @views SIGMA_rt_tmp[:, i1_list[ii], j1_list[jj]] .+= CHI_view[:, q, ii, jj] .* G_view[:, q, i2_list[ii], j2_list[jj]]
+        end
+        G_view[:, q, :, :] .= SIGMA_rt_tmp .* coef
+    end
+    rt2kw!(G, FFT_plan)
+
+    sub_self0 &amp;&amp; _subtract_minimum_iw!(G_view)
+    _update_SIGMA!(G_view, SIGMA_view, mix_factor, RPA)
+    return_dself &amp;&amp; return _eval_err(G_view)
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>kw2rt!(CHI)</code> — <code>V<sub>eff</sub></code> を <code>(k,iν)→(r,τ)</code> に変換。<code>G</code> は前段で既に <code>(r,τ)</code>。</li>
+        <li><code>SIGMA_rt_tmp[:, i1, j1] .+= CHI[:,q,ii,jj] .* G[:,q,i2,j2]</code> — <code>(r,τ)</code> での要素積で <code>Σ(r,τ)=T/N Σ V<sub>eff</sub>G</code>。複合添字を軌道ペアに展開して和を取る。</li>
+        <li><code>G_view[:,q,:,:] .= SIGMA_rt_tmp .* coef</code> → <code>rt2kw!(G)</code> — 計算した <code>Σ(r,τ)</code> を <b><code>G</code> のメモリに書き込み</b>、<code>(k,iω)</code> に戻す。以後 <code>G_view[1:Nw]</code> が <code>Σ<sub>cal</sub></code>。</li>
+        <li><b>メモリ再利用の肝：</b> <code>G</code> の未使用な上半分 <code>Nw+1:2Nw</code> に <b>誤差 <code>Σ<sub>cal</sub>-Σ<sub>old</sub></code></b> を格納（<code>_update_SIGMA!</code>）。これを <code>_eval_err</code> がそのまま読んで絶対/相対誤差を出す。</li>
+        <li><code>_subtract_minimum_iw!</code> — 最低松原成分の実部（<code>self0</code>）を <code>Σ</code> から引く。第一原理バンドで <code>μ</code> と<b>二重にシフトしない</b>ための静的補正（<code>1:Nw</code> のみ）。<code>sub_self0=true</code> のとき実行。</li>
+        <li><code>_update_SIGMA!</code> — <code>Σ<sub>new</sub>=(1-mix)Σ<sub>old</sub>+mix·Σ<sub>cal</sub></code> の<b>線形混合</b>で SCF を安定化（既定 <code>mix=0.3</code>）。<code>RPA=true</code> なら混合せず <code>Σ=Σ<sub>cal</sub></code>。</li>
+        <li><code>return_dself &amp;&amp; return _eval_err(...)</code> — <code>(絶対誤差, 相対誤差)</code> を返す。呼び出し側はこれで収束を判定。</li>
+      </ul>
+
+      <div class="warn-box">
+        <b>入力配列の状態が前提：</b> <code>G</code> は <code>(r,τ)</code>（<code>calc_CHI0!</code> の副作用）でなければならない。関数内で <code>G</code> は「<code>Σ</code> の作業領域＋誤差バッファ」に転用され、<code>calc_GREEN!</code> を呼ぶまで <code>(k,iω)</code> の <code>G</code> としては使えなくなる。SCF の呼び出し順（G→χ0→Veff→Σ→次のG）を守ること。
+      </div>
+
+      <div class="related">関連：<code>calc_Veff!</code>（<code>CHI=V<sub>eff</sub></code> を供給）／ <code>calc_CHI0!</code>（<code>G</code> を <code>(r,τ)</code> に）／ <code>calc_GREEN!</code>（更新後の <code>Σ</code> で次の <code>G</code>）</div>
+    </div>
+
+    <!-- ============ calc_mu ============ -->
+    <div class="fn-row">
+      <span class="fn-name">calc_mu<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">フィリング一定になる化学ポテンシャル <code>μ</code> を求根（Secant→Brent フォールバック）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">calc_mu(mu, SIGMA, ENERGY, MATSUBARA, ENERGY_diag, temperature, Nfilling; solver="Secant", dmu=nothing, atol=1e-6, rtol=1e-8, show_Ne=false) &rarr; mu_new</div>
+
+      <h4>概要</h4>
+      <p>
+        電子数 <code>Ne(μ)</code> が目標フィリング <code>Nfilling</code> に一致する <code>μ</code> を求根で決める。相互作用込みの
+        <code>G=[iω+μ-H-Σ]<sup>-1</sup></code> の松原和から <code>Ne(μ)</code> を組み、<code>Secant</code>（割線法）で解いて、失敗時は
+        <code>Brent</code> 法に自動フォールバックする。<code>Ne</code> は<b>非相互作用のフェルミ分布項</b>と、その<b>相互作用補正（松原和）</b>に
+        分けて評価し、収束を速める。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">flex.jl · calc_mu（抜粋：目標方程式とソルバ切替）</div>
+<pre>function calc_mu(mu, SIGMA, ENERGY, MATSUBARA, ENERGY_diag, temperature, Nfilling;
+                solver="Secant", dmu=nothing, atol=1e-6, rtol=1e-8, show_Ne=false)
+    Nw, Nqx, Nqy, Nqz, No, _ = size(SIGMA)
+    Nq = Nqx * Nqy * Nqz
+    SIGMA_view = reshape(SIGMA, Nw, Nq, No, No)
+    ENERGY_view = reshape(ENERGY, Nq, No, No)
+
+    dmu = (dmu === nothing) ? (maximum(ENERGY_diag) - minimum(ENERGY_diag)) * 0.5 : dmu
+    coef1 = 2 * temperature / Nq
+    coef2 = 1.0 / Nq
+    beta = 1.0 / temperature
+
+    Emin = minimum(ENERGY_diag); Emax = maximum(ENERGY_diag)
+    # 数値不安定（NaN/Inf, secant の暴走）に対する μ の安全上限
+    mu_abs_max = max(abs(Emin), abs(Emax)) + 100.0 * max(1.0, (Emax - Emin)) + 100.0
+
+    function _target_equation(mu)
+        dNe_kx = zeros(Nq)
+        dind = 1:No+1:No*No
+        @threads for q in 1:Nq
+            local_matrix1 = Array{ComplexF64}(undef, No, No)
+            local_matrix2 = Array{ComplexF64}(undef, No, No)
+            @views ENERGY_q = copy(ENERGY_view[q, :, :])
+            for w in 1:Nw
+                local_matrix1 .= -ENERGY_q
+                local_matrix1[dind] .+= MATSUBARA[w] + mu
+                local_matrix2 .= -inv(local_matrix1)
+                @views local_matrix1 .-= SIGMA_view[w, q, :, :]
+                local_matrix2 .+= inv(local_matrix1)
+                dNe_kx[q] += real(tr(local_matrix2))
+            end
+        end
+        any(x -> !isfinite(x), dNe_kx) &amp;&amp; throw(DomainError(mu, "calc_mu: non-finite dNe_kx"))
+        Ne = sum(dNe_kx) * coef1
+        Ne += sum(logistic.(-beta * (ENERGY_diag .- mu))) * coef2
+        isfinite(Ne) || throw(DomainError(mu, "calc_mu: non-finite Ne"))
+        show_Ne &amp;&amp; @show mu, Ne
+        return Ne - Nfilling
+    end
+
+    function _solve_Brent(mu, dmu)
+        try
+            return fzero(_target_equation, (mu - dmu, mu + dmu), Roots.Brent(), atol=atol, rtol=rtol)
+        catch
+            return "Failed-to-converge"
+        end
+    end
+
+    if solver == "Secant"
+        try
+            mu_new = find_zero(_target_equation, mu, Order1(), atol=atol, rtol=rtol)
+            if !(isfinite(mu_new) &amp;&amp; abs(mu_new) &lt;= mu_abs_max)
+                @warn "calc_mu: Secant returned implausible mu; fallback to Brent" mu mu_new Emin Emax mu_abs_max
+                mu_new = _solve_Brent(mu, dmu)
+            end
+        catch
+            @warn "Failed convergence with the secant method and switched to the Brent method."
+            mu_new = _solve_Brent(mu, dmu)
+        end
+    elseif solver == "Brent"
+        mu_new = _solve_Brent(mu, dmu)
+        if mu_new == "Failed-to-converge"
+            dmu = (maximum(ENERGY_diag) - minimum(ENERGY_diag)) * 0.5
+            mu_new = _solve_Brent(mu, dmu)
+        end
+    else
+        throw(ArgumentError("solver must be either \"Secant\" or \"Brent\"."))
+    end
+    return mu_new
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><b><code>_target_equation(mu)</code></b> — <code>Ne(μ)-Nfilling</code> を返す求根対象。ゼロになる <code>μ</code> が答え。</li>
+        <li><code>local_matrix2 .= -inv(iω+μ-H)</code> → <code>.+= inv(iω+μ-H-Σ)</code> — 各周波数で<b>「相互作用 G」と「非相互作用 G」の差</b>のトレースを取る。<code>dNe_kx[q]</code> はその松原和。</li>
+        <li><code>Ne = sum(dNe_kx)*coef1</code>（<code>coef1=2T/N</code>）— 差分の松原和（正周波数だけ回して <code>×2</code> で負側を補う）＝<b>相互作用による占有数補正</b>。</li>
+        <li><code>Ne += sum(logistic(-β(E_diag-μ)))*coef2</code> — <b>非相互作用バンドのフェルミ分布</b>（<code>logistic</code>=フェルミ関数）を閉形式で加える。松原和が遅い分をこの解析項が肩代わりし、収束を速める定石。</li>
+        <li><code>mu_abs_max</code> — <code>secant</code> が発散して非現実的な <code>μ</code> を返したときの<b>安全上限</b>。超えたら Brent に切替。</li>
+        <li><code>solver=="Secant"</code> — <code>find_zero(…, Order1())</code>（割線法）。例外 or 実装外の値なら <code>@warn</code> して <code>_solve_Brent</code> に<b>自動フォールバック</b>。</li>
+        <li><code>solver=="Brent"</code> — 区間 <code>(mu-dmu, mu+dmu)</code> を括る Brent 法。失敗時は <code>dmu</code> をバンド幅の半分に広げて再試行。</li>
+        <li><code>throw(DomainError(...))</code> — <code>NaN/Inf</code> が出たら黙って進めず即エラー。数値破綻を早期に検出。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>Secant と Brent の使い分け：</b> 割線法は初期 <code>μ</code> 1 点から速く収束するが暴走し得る。Brent は区間を括るぶん安全だが <code>dmu</code>（区間幅）が要る。既定は「まず Secant、危なければ Brent」の二段構え。<code>dmu</code> を明示するとバンド幅からの推定を省けて速い。
+      </div>
+
+      <div class="related">関連：<code>calc_GREEN!</code>（更新した <code>μ</code> で <code>G</code> を作り直す）／ <a href="nonint.html">Nonint</a> の <code>ENERGY_diag</code>（フェルミ項に使用）</div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <b>1 反復の流れ：</b>
+    <code>calc_GREEN!</code>（<code>Σ,μ</code> から <code>G</code>）→ <code>calc_CHI0!</code>（<code>G→χ<sub>0</sub></code>、<code>G</code> は <code>(r,τ)</code> に）→
+    <code>calc_Veff!</code>（<code>χ<sub>0</sub>→V<sub>eff</sub></code>）→ <code>calc_SIGMA!</code>（<code>V<sub>eff</sub>,G→Σ</code> を混合更新・誤差評価）→
+    <code>calc_mu</code>（フィリング一定に <code>μ</code> 更新）。これを誤差が閾値を切るまで繰り返す。感受率を図示したいときだけ
+    <code>calc_CHIS_CHIC!</code> を差し込む。<b>FFT の副作用（<code>G</code> の <code>(r,τ)</code> 化）と配列の使い回し</b>が全体設計の要。
+  </div>
+
 </main>
 
 <footer>
   <p class="font-serif">&copy; 2026 研究メモ — FLEX</p>
 </footer>
+
+<script>
+  document.querySelectorAll('.fn-row').forEach(function (row) {
+    row.addEventListener('click', function () {
+      row.classList.toggle('open');
+    });
+  });
+</script>
 
 </body>
 </html>
