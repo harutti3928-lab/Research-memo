@@ -20,9 +20,12 @@
     { path: 'eliashberg/eliashberg-equations.html',title: '方程式の導出と構造',       section: 'Eliashberg方程式' },
     { path: 'eliashberg/eliashberg-a2f.html',      title: 'α²F(ω) と λ の計算',      section: 'Eliashberg方程式' },
     { path: 'eliashberg/eliashberg-tc.html',       title: 'Tc の見積もり',            section: 'Eliashberg方程式' },
-    { path: 'code/functions/nonint.html',          title: 'Nonint — 非相互作用H(k)',  section: 'コード解説' },
-    { path: 'code/functions/flex.html',            title: 'FLEX（準備中）',           section: 'コード解説' },
-    { path: 'code/functions/eliashberg.html',      title: 'Eliashberg（準備中）',     section: 'コード解説' },
+    { path: 'code/functions/nonint.html',          title: 'Nonint — 非相互作用H(k)',    section: 'コード解説' },
+    { path: 'code/functions/fft.html',             title: 'FFT — 変換と配列確保',       section: 'コード解説' },
+    { path: 'code/functions/interaction.html',     title: 'Interaction — 相互作用行列', section: 'コード解説' },
+    { path: 'code/functions/anomalous.html',       title: 'Anomalous — 異常項の基底変換', section: 'コード解説' },
+    { path: 'code/functions/flex.html',            title: 'FLEX — 自己エネルギー・SCF', section: 'コード解説' },
+    { path: 'code/functions/eliashberg.html',      title: 'Eliashberg — ギャップ方程式', section: 'コード解説' },
   ];
 
   var KNOWN_DIRS = ['vasp', 'flex', 'wannier', 'eliashberg'];
@@ -30,20 +33,21 @@
   /* ── URL helpers ────────────────────────── */
   function getBase() {
     var parts = window.location.pathname.replace(/\\/g, '/').split('/');
-    parts.pop(); // filename
-    var dir = parts.pop(); // parent dir
+    parts.pop();                 // filename
+    var dir = parts.pop() || ''; // parent dir
+    var gp  = parts.pop() || ''; // grandparent dir
+    if (dir === 'functions' && gp === 'code') return '../../';
     return KNOWN_DIRS.indexOf(dir) >= 0 ? '../' : './';
   }
 
   function getCurrentPage() {
     var pname = window.location.pathname.replace(/\\/g, '/');
-    var filename = pname.split('/').pop() || 'index.html';
-    var dir = pname.split('/').slice(-2, -1)[0] || '';
+    if (/\/$/.test(pname)) pname += 'index.html'; // directory URL → index
+    // 現在の URL 末尾が PAGES の相対パスと一致するものを探す（多階層対応）
     for (var i = 0; i < PAGES.length; i++) {
-      var p = PAGES[i];
-      var pFile = p.path.split('/').pop();
-      var pDir  = p.path.indexOf('/') >= 0 ? p.path.split('/')[0] : '';
-      if (pFile === filename && (pDir === '' || pDir === dir)) return i;
+      var suffix = '/' + PAGES[i].path;
+      if (pname.length >= suffix.length &&
+          pname.slice(-suffix.length) === suffix) return i;
     }
     return -1;
   }
