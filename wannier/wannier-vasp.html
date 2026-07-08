@@ -43,93 +43,94 @@
 <main>
 
   <h2 class="font-serif">全体の流れ</h2>
-  <pre>1. VASP SCF 計算（稠密 k グリッド）
-2. VASP NSCF 計算（Wannier90 用 k グリッド）
-   INCAR に LWANNIER90 = .TRUE.
-3. wannier90.win の作成・編集
-4. wannier90 -pp seedname  （前処理：NNKP ファイル生成）
-5. VASP を再度実行（vaspwann 計算）
-6. wannier90 seedname       （Wannier 関数の最局在化）
-7. 出力ファイルの確認・可視化</pre>
+  <p>VASP は Wannier90 をライブラリとしてリンク済みとする。<code>LWANNIER90_RUN</code> を使うと、VASP の対角化に続けてワニエ化までを 1 回の投入（qsub）でインライン実行できる。別途 <code>wannier90 -pp</code> を回す必要はない。</p>
+  <pre>1. SCF 計算をしたフォルダを cp -r でコピー（例: wan）。以降は wan 内で作業。
+2. wan/INCAR を書き換える
+     ICHARG = 1 / ISYM = -1 / NBANDS / NELMIN を設定
+     LWANNIER90 / LWANNIER90_RUN / LWRITE_MMN_AMN = .TRUE.
+     NUM_WANN と WANNIER90_WIN（win の中身）を追記
+3. qsub で投入（memory に余裕のある node を指定）
+     → VASP 対角化 ＋ ワニエ化がインラインで一括実行される
+4. wannier90_band.dat と第一原理バンドを重ねてフィットを確認
+5. ウィンドウを調整（wannier90.win だけ編集して wannier90 単独で再実行。VASP は回さない）</pre>
 
-  <h2 class="font-serif">VASP 側の設定</h2>
+  <h2 class="font-serif">INCAR の書き換え</h2>
+  <p>SCF フォルダをコピーした前提で、追記・変更するタグは次のとおり。</p>
+  <pre>ICHARG = 1              # SCF の charge density を読み込んで start
+ISYM   = -1             # 結晶対称性を使わない（w90 の仕様上、必須）
+NBANDS = 48             # 念のため多め（unoccupied band まで確保）
+NELMIN = 6              # unoccupied まで収束させるため最低 6 回 SCF ループを回す
 
-  <div class="step">
-    <div class="step-num">1</div>
-    <div class="step-body">
-      <h3>INCAR の設定</h3>
-      <pre>LWANNIER90 = .TRUE.     # Wannier90 インターフェースを有効化
-LWRITE_MMN_AMN = .TRUE. # MMN・AMN ファイルの出力
-NSW    = 0
-IBRION = -1
-ICHARG = 11   # SCF の CHGCAR を使用</pre>
-    </div>
+LWANNIER90     = .TRUE. # ワニエ化を有効化
+LWANNIER90_RUN = .TRUE. # w90 をインライン実行
+LWRITE_MMN_AMN = .TRUE. # MMN・AMN ファイルを出力
+NUM_WANN = 4            # Wannier の本数</pre>
+  <div class="warn">
+    <code>ISYM = -1</code> は必須。Wannier90 は対称化していない一様な k メッシュ上の波動関数を要求するため、対称性を切る。KPOINTS は Γ 中心の一様メッシュにする。
   </div>
 
-  <div class="step">
-    <div class="step-num">2</div>
-    <div class="step-body">
-      <h3>KPOINTS の設定</h3>
-      <p>Wannier90 では Monkhorst-Pack グリッドを使う。高対称点パスは不可。</p>
-      <pre>Automatic
-0
-Gamma
-  8 8 8
-  0 0 0</pre>
-      <div class="warn">k 点数は wannier90.win の mp_grid と一致させる必要がある。</div>
-    </div>
+  <h3>WANNIER90_WIN（win の中身を INCAR に埋め込む）</h3>
+  <p>VASP 6.2 以降は独立した <code>wannier90.win</code> の読み込みが壊れているため、win の中身を <code>WANNIER90_WIN</code> タグに直接埋め込む。以下は BC₃（B:pz の 4 軌道モデル）の例。</p>
+  <pre>WANNIER90_WIN = "
+Begin Projections
+B:pz
+End Projections
+exclude_bands : 1-30
+dis_win_min = -2.7
+dis_win_max = 4.0
+dis_froz_min = -2.6
+dis_froz_max = -1.0
+dis_num_iter = 10000
+num_iter = 0
+guiding_centres = true
+write_hr = true
+bands_plot   = true
+begin kpoint_path
+G 0.0 0.0 0.0 M 0.5 0.0 0.0
+M 0.5 0.0 0.0  K 0.33333333 0.33333333 0.0
+K 0.33333333 0.33333333 0.0 G 0.0 0.0 0.0
+end kpoint_path
+bands_num_points 50
+bands_plot_format gnuplot
+"</pre>
+  <div class="warn">
+    埋め込み時の注意：<br>
+    ・<code>"</code> は必ず半角のクォーテーションにする（全角 &ldquo;&rdquo; はエラー）。<br>
+    ・<code>WANNIER90_WIN = "</code> 〜 閉じ <code>"</code> の間に他の INCAR パラメータを挟まない。<br>
+    ・コピペ時に Slack の <code>(edited)</code> のようなコメントが混入しないよう注意。<br>
+    ・<code>K</code> の座標が 1/3, 1/3, 0 でない場合は、バンド計算時の KPOINTS を見て kpoint_path を直す。
   </div>
 
-  <h2 class="font-serif">wannier90.win の書き方</h2>
-  <h3>最小限の設定（SrVO₃ の t₂g モデルの例）</h3>
-  <pre>num_wann   = 3          # Wannier 関数の数
-num_bands  = 16         # 考慮するバンド数（全価電子バンド）
+  <h3>投入時のメモ</h3>
+  <p>memory をそこそこ使う可能性があるので、<code>qhost</code> で使用量に余裕のある node を確認し、それを指定して投げるほうが無難。</p>
 
-# エネルギーウィンドウ（eV, フェルミ面基準）
-dis_win_max  =  2.5
-dis_win_min  = -5.0
-dis_froz_max =  1.0     # Frozen window の上端
-dis_froz_min = -0.5
+  <h2 class="font-serif">ウィンドウの調整</h2>
+  <p>ワニエ化のウィンドウは、まず仮の値で回してから、バンドの重なり具合を見て調整する。理論的な背景は
+    <a href="wannier-tips.html">ディスエンタングルメント・初期射影のコツ</a> も参照。</p>
 
-# 初期射影（原子番号・軌道を指定）
-begin projections
-  V : d,t2g
-end projections
+  <h3>outer window（dis_win_min / dis_win_max）</h3>
+  <p>outer window は、この範囲にあるバンドの線型結合でワニエ軌道を表す。したがって<strong>再現したいバンドを含むように</strong>取る必要がある。広すぎてもうまくいかないので、いろいろ試すとよい。動かすのは通常 <code>dis_win_max</code> 側で、<code>dis_win_min</code> をいじる必要はないはず。</p>
 
-# k 点グリッド（KPOINTS と一致させる）
-mp_grid = 8 8 8
+  <h3>frozen window（dis_froz_min / dis_froz_max）</h3>
+  <p>frozen（inner）window は、この中に入ったバンドを<strong>なるべく厳密に再現する</strong>ように局在化が行われる。したがって<strong>関係ないバンドをこの窓に入れてはいけない</strong>。必然的に outer window より狭くなり、そうしないとエラーで止まる。こちらも動かすのは <code>dis_froz_max</code> 側で、min を動かす必要はないはず。</p>
 
-# 格子定数と原子座標
-begin unit_cell_cart
-bohr
-  7.26  0.00  0.00
-  0.00  7.26  0.00
-  0.00  0.00  7.26
-end unit_cell_cart
+  <div class="warn">
+    VASP の場合、ウィンドウのエネルギーは <strong>E<sub>F</sub> を引く前の絶対値</strong>（wannier90.eig の値）で指定する。バンド図で E<sub>F</sub> を引いてプロットしている場合は、その分を足し戻した値を使うこと。
+  </div>
 
-begin atoms_frac
-  Sr  0.0  0.0  0.0
-  V   0.5  0.5  0.5
-  O   0.5  0.5  0.0
-  O   0.5  0.0  0.5
-  O   0.0  0.5  0.5
-end atoms_frac</pre>
+  <h3>調整の回し方</h3>
+  <p>ウィンドウを変えるだけなら VASP を回す意味はない。<strong>INCAR は変更せず</strong>、<code>wannier90.win</code> の該当パラメータだけを書き換えて、ワニエ化だけを再実行する。VASP は回さないので、今までの qsub ファイルは使わない。</p>
+  <pre># wannier90 を単独で再実行（VASP は回さない）
+wannier90.x wannier90</pre>
 
-  <h2 class="font-serif">出力ファイルの確認</h2>
-  <pre>seedname.wout        ← ログ。スプレッド Ω の収束を確認
-seedname_hr.dat      ← ホッピングパラメータ（メインの出力）
-seedname_band.dat    ← バンド補間の結果（bands_plot = true の場合）
-seedname.chk         ← チェックポイント（中断・再開用）</pre>
-
-  <h3>収束の確認方法</h3>
-  <pre># .wout の末尾を確認
-grep "Final State" seedname.wout
-grep "WF centre" seedname.wout | tail -5
-
-# スプレッド Ω が安定して減少していれば収束</pre>
-
+  <h2 class="font-serif">フィットの確認</h2>
+  <p>ワニエ化で得た tight-binding バンド <code>wannier90_band.dat</code> と、第一原理バンドを重ねてフィットを確認する。frozen window の中は厳密一致であるべき。ずれていたらウィンドウか射影を調整する。</p>
+  <pre>wannier90.wout        ← スプレッド Ω の収束を確認（pz なら数 Å² 程度）
+wannier90_hr.dat      ← 実空間ホッピング H(R)（FLEX の入力）
+wannier90_band.dat    ← ワニエ補間バンド（1 列目が k 経路の座標）
+wannier90_band.gnu    ← 特殊 k 点の位置（縦線）が分かる。重ね描きの目盛りに使う</pre>
   <div class="note">
-    初期射影が悪いと Ω が収束しないか、意図しない軌道に収束する。<code>wannier_plot = true</code> で Wannier 関数の形状（XSF ファイル）を VESTA で確認すること。
+    <code>wannier90_band.dat</code> の 1 列目（k 点座標）だけでは、どこが G / M / K か分からない。<code>wannier90_band.gnu</code> の xtics を見れば、各特殊 k 点が経路上のどの位置に対応するか分かるので、DFT バンドと横軸を揃えて重ねられる。
   </div>
 
 </main>
