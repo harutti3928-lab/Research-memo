@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Logging — バッチ出力の整形ヘルパ | コード解説</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      background-color: #fcfbfa; color: #2c2a29;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      line-height: 1.9; -webkit-font-smoothing: antialiased;
+    }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 820px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 0.5px; }
+    main { max-width: 820px; margin: 0 auto; padding: 48px 24px 100px; }
+    h2 {
+      font-size: 14pt; font-weight: 600; color: #2c2a29;
+      margin: 46px 0 8px; letter-spacing: 0.4px;
+      border-left: 3px solid #4a69b5; padding-left: 14px;
+    }
+    h2 .file-kind { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8.5pt; color: #96938f; font-weight: 500; letter-spacing: 0.5px; margin-left: 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .lead { font-size: 10.5pt; color: #4a4845; margin: 4px 0 24px; }
+    code { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 16px 18px; border-radius: 4px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9pt; overflow-x: auto; margin: 16px 0; line-height: 1.7; }
+    .note { background: #eef1f9; border-left: 3px solid #4a69b5; padding: 14px 18px; margin: 22px 0; font-size: 10pt; color: #2c2a29; border-radius: 0 4px 4px 0; }
+    footer { max-width: 820px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+
+    /* ── file-level import banner ─────────────── */
+    .imports { margin: 14px 0 30px; border: 1px solid #e3e0da; border-radius: 6px; overflow: hidden; }
+    .imports .code-head { background: #edeae4; padding: 6px 14px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .imports pre { margin: 0; border-radius: 0; background: #fbfaf8; }
+
+    /* ── function list ────────────────────────── */
+    .fn-list { margin: 6px 0 8px; border-top: 1px solid #e6e4e0; }
+    .fn-row {
+      cursor: pointer; padding: 15px 8px 15px 6px;
+      border-bottom: 1px solid #ece9e4; transition: background 0.15s;
+      display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    }
+    .fn-row:hover { background: #f5f3ef; }
+    .fn-name {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 11pt; font-weight: 600; color: #1a3a6a; letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    .fn-ind { font-size: 7pt; color: #b0a898; margin-left: 5px; transition: transform 0.2s ease; display: inline-block; vertical-align: middle; }
+    .fn-row.open .fn-ind { transform: rotate(90deg); }
+    .fn-sub { font-size: 9.5pt; color: #73706c; flex: 1; min-width: 220px; }
+
+    /* ── detail panel ─────────────────────────── */
+    .fn-detail {
+      display: none; background: #f9f7f4; border-left: 3px solid #4a69b5;
+      padding: 22px 26px; margin: 0 0 2px; animation: detailIn 0.18s ease-out;
+    }
+    .fn-row.open + .fn-detail { display: block; }
+    @keyframes detailIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .fn-detail h4 { font-size: 10pt; font-weight: 600; color: #2c2a29; margin: 20px 0 8px; letter-spacing: 0.3px; }
+    .fn-detail h4:first-of-type { margin-top: 0; }
+    .fn-detail p { font-size: 10pt; margin: 0 0 10px; color: #3a3836; }
+    .syntax-box {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 9pt; background: #edeae4; border-radius: 3px;
+      padding: 10px 14px; margin: 0 0 4px; color: #2c2a29; overflow-x: auto;
+    }
+    .code-wrap { margin: 12px 0 4px; border: 1px solid #e3e0da; border-radius: 5px; overflow: hidden; }
+    .code-head { background: #edeae4; padding: 5px 13px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .code-wrap pre { margin: 0; border-radius: 0; background: #fbfaf8; font-size: 8.7pt; line-height: 1.68; padding: 13px 15px; }
+
+    /* ── "読み方" mapping list ────────────────── */
+    .read-list { list-style: none; padding: 0; margin: 6px 0 4px; }
+    .read-list > li { position: relative; padding: 7px 0 7px 18px; font-size: 9.8pt; color: #3a3836; border-bottom: 1px dashed #e7e3dc; }
+    .read-list > li:last-child { border-bottom: none; }
+    .read-list > li::before { content: "▸"; position: absolute; left: 0; top: 8px; color: #b0a898; font-size: 8pt; }
+    .read-list code { font-size: 8.9pt; color: #1a3a6a; background: #edeae4; }
+    .read-list b { color: #253a6a; }
+
+    .warn-box {
+      background: #fef9ee; border-left: 3px solid #d4a017;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #5a4a1a;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .tip-box {
+      background: #eef7f0; border-left: 3px solid #4a8a5a;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #234a30;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .related { margin-top: 16px; padding-top: 10px; border-top: 1px solid #e3ded6; font-size: 9pt; color: #73706c; }
+    .related code { font-size: 8.9pt; color: #1a3a6a; }
+  </style>
+  <link rel="stylesheet" href="../../site.css">
+  <script defer src="../../site.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../../index.html">研究メモ</a> &rsaquo; コード解説 &rsaquo; Logging</div>
+  <h1 class="font-serif">Logging — ログ整形と分数座標の表示</h1>
+  <p class="font-serif">— バナー/見出し/key-value のログ整形と、k-path・q 点ラベル用の分数フォーマット &nbsp;|&nbsp; 関数名をクリックで詳細 —</p>
+</header>
+
+<main>
+
+  <p class="lead">
+    バッチ実行のログ出力を読みやすくするための、<b>依存なし・軽量</b>の整形ヘルパ群。水平線・バナー・
+    セクション見出し・key/value の桁揃え出力に加え、k-path や q 点ラベルで使う
+    <b>分数座標の整形</b>（整数演算での約分）を提供する。長時間まわるソルバの標準出力を
+    <code>==== TITLE ====</code> や <code>  key                  : value</code> のような一定の体裁に揃え、
+    軸ラベルには <code>0</code>・<code>1/4</code>・<code>-3/8</code> のような約分済み分数を出せるようにするのが役割。
+  </p>
+
+  <div class="note">
+    このページの規約：<b>外部依存なし</b>（すべて <code>println</code> ベースで実装）、水平線／バナーの
+    <b>既定幅は 78 桁</b>、分数は <code>gcd</code> を使った整数演算で約分し、<b>分母を正に正規化</b>する
+    （符号は必ず分子側へ寄せる）。この 3 点が全関数で共通の前提。
+  </div>
+
+  <h2 class="font-serif">logging.jl<span class="file-kind">Julia</span></h2>
+  <p class="lead">ログ整形の 4 関数と、分数座標整形の 3 関数をまとめた小さなユーティリティ。<code>using</code> 文を一切持たない＝標準機能だけで動く。</p>
+
+  <div class="imports">
+    <div class="code-head">logging.jl — 冒頭</div>
+<pre># logging.jl
+# バッチ出力を読みやすくするためのログ整形ヘルパー（依存なし・軽量）。</pre>
+  </div>
+
+  <p class="lead">
+    このファイルには <code>using</code> / <code>import</code> が無い点に注目。<code>println</code>・<code>strip</code>・
+    <code>rpad</code>・<code>repeat</code>・<code>gcd</code>・<code>div</code> といった Base の関数だけで完結しているので、
+    どのスクリプトからでも副作用なく読み込める。話題は大きく 2 つ——前半 4 つ（<code>log_hr</code> /
+    <code>log_banner</code> / <code>log_section</code> / <code>log_kv</code>）が<b>ログの体裁づくり</b>、
+    後半 3 つ（<code>_reduce_fraction</code> / <code>_frac_str</code> / <code>format_grid_fraction</code>）が
+    <b>分数座標の整形</b>で二分される。
+  </p>
+
+  <div class="fn-list">
+
+    <!-- ============ log_hr ============ -->
+    <div class="fn-row">
+      <span class="fn-name">log_hr<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">水平線を 1 本引く — <code>ch</code> を <code>n</code> 個並べて <code>println</code></span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">log_hr(; ch::Char='-', n::Int=78) &rarr; nothing（標準出力に区切り線）</div>
+
+      <h4>概要</h4>
+      <p>
+        指定した文字 <code>ch</code> を <code>n</code> 個つなげた <b>水平線</b>を 1 行出力する、いちばん素朴なヘルパ。
+        既定は <code>-</code> を 78 個、つまり <code>------------------------------------------------------------------------------</code>。
+        セクションの区切りや、後述 <code>log_banner</code> の空タイトル時のフォールバックとして使う。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">logging.jl · log_hr</div>
+<pre>"""水平線を引く。"""
+function log_hr(; ch::Char='-', n::Int=78)
+    println(repeat(string(ch), n))
+    return nothing
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li>引数はすべて<b>キーワード引数</b>（<code>;</code> の後ろ）。位置引数を取らないので、呼ぶときは <code>log_hr()</code> か <code>log_hr(ch='=', n=40)</code> のように名前で渡す。</li>
+        <li><code>ch::Char='-'</code> — 線に使う<b>1 文字</b>。既定はハイフン。<code>Char</code> なので <code>'='</code> のように<b>シングルクォート</b>で渡す（文字列 <code>"="</code> ではない）。</li>
+        <li><code>n::Int=78</code> — 並べる個数。<b>既定幅 78 桁</b>という共通規約がここに現れる。</li>
+        <li><code>repeat(string(ch), n)</code> — <code>Char</code> を <code>string</code> で 1 文字の文字列にしてから <code>n</code> 回繰り返す。結果を <code>println</code> でそのまま 1 行出力。</li>
+        <li><code>return nothing</code> — 戻り値は使わない（副作用＝標準出力が目的）。以降のヘルパも同じ流儀。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>使いどころ：</b> 単独の区切り線としてはもちろん、<code>log_banner</code> にタイトルが渡されなかったときに <code>log_hr(ch=ch)</code> として内部で呼ばれる。<code>ch</code> を <code>'='</code> にすれば太めの線、<code>'-'</code> なら細めの線と、太さを 1 文字で切り替えられる。
+      </div>
+
+      <div class="related">関連：<code>log_banner</code>（空タイトル時に <code>log_hr</code> へフォールバック）／ <code>log_section</code></div>
+    </div>
+
+    <!-- ============ log_banner ============ -->
+    <div class="fn-row">
+      <span class="fn-name">log_banner<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>==== TITLE ====</code> 形のバナー行を 78 桁まで埋めて出力</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">log_banner(title::AbstractString; ch::Char='=') &rarr; nothing（<code>==== TITLE ====…</code>）</div>
+
+      <h4>概要</h4>
+      <p>
+        タイトルを中央寄り（左寄せ）に置いた <b>バナー行</b>を出力する。左側は <code>ch</code> を 2 個＋空白＋
+        <code>title</code>＋空白、そして残りを <b>78 桁になるまで <code>ch</code> で右側を埋める</b>。たとえば
+        <code>log_banner("run start")</code> は <code>== run start ==============================================================</code>
+        のような 1 行を出す。<code>title</code> が空（または空白のみ）なら <code>log_hr</code> にフォールバックして、ただの水平線になる。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">logging.jl · log_banner</div>
+<pre>"""'==== TITLE ====' のようなバナー行を出力する。"""
+function log_banner(title::AbstractString; ch::Char='=')
+    s = strip(title)
+    if isempty(s)
+        log_hr(ch=ch)
+        return nothing
+    end
+    pad = 2
+    inner = "$(repeat(string(ch), pad)) $(s) $(repeat(string(ch), pad))"
+    nfill = max(0, 78 - lastindex(inner))
+    println(inner * repeat(string(ch), nfill))
+    return nothing
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>s = strip(title)</code> — 前後の空白を<b>トリム</b>。以降はこの <code>s</code> を本文として扱う。</li>
+        <li><code>if isempty(s) … log_hr(ch=ch)</code> — トリム後に中身が無ければ<b>水平線へフォールバック</b>。同じ <code>ch</code> を渡すので線の文字は揃う。ここで <code>return</code> して以降は実行しない。</li>
+        <li><code>pad = 2</code> — タイトルの左右に置く <code>ch</code> の個数（＝先頭の <code>====</code> でいう「2 個ぶん」）。</li>
+        <li><code>inner = "$(ch×2) $(s) $(ch×2)"</code> — <b>中央部分</b>を組み立てる。<code>ch</code> を 2 個＋<b>空白</b>＋タイトル＋<b>空白</b>＋<code>ch</code> を 2 個。<code>ch='='</code>・<code>s="run start"</code> なら <code>== run start ==</code>。</li>
+        <li><code>nfill = max(0, 78 - lastindex(inner))</code> — <b>78 桁に届かせるための残り個数</b>。<code>lastindex(inner)</code> は <code>inner</code> の長さ相当。<code>max(0, …)</code> で、<code>inner</code> が既に 78 桁を超えていても<b>負の繰り返し数にならない</b>よう 0 で下限を切る。</li>
+        <li><code>println(inner * repeat(string(ch), nfill))</code> — 中央部分の<b>右側だけ</b>を <code>ch</code> で埋めて 78 桁の帯にし、1 行出力。左は <code>== title ==</code>、右が伸びる非対称なバナーになる。</li>
+      </ul>
+
+      <div class="warn-box">
+        <b>注意：</b> 78 桁ちょうどになるとは限らない。<code>title</code> が長くて <code>inner</code> が 78 桁を超えると <code>nfill=0</code> となり、<b>埋め文字は付かず</b> <code>inner</code> がそのまま出る（78 桁を超えた行になる）。あくまで「最低でも 78 桁まで右を埋める」挙動で、上限を切り詰めはしない。
+      </div>
+
+      <div class="related">関連：<code>log_hr</code>（空タイトル時のフォールバック先）／ <code>log_section</code>（軽い見出し版）</div>
+    </div>
+
+    <!-- ============ log_section ============ -->
+    <div class="fn-row">
+      <span class="fn-name">log_section<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>--- title ---</code> のセクション見出しを（前に空行を入れて）出力</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">log_section(title::AbstractString) &rarr; nothing（<code>\n--- title ---</code>）</div>
+
+      <h4>概要</h4>
+      <p>
+        <code>log_banner</code> より軽い <b>セクション見出し</b>。タイトルを <code>---</code> で挟み、<b>直前に空行</b>を 1 つ入れて
+        <code>--- title ---</code> の形で出力する。たとえば <code>log_section("diagonalize")</code> は空行のあと
+        <code>--- diagonalize ---</code> を出す。ログの中で処理段階を区切るのに使う、桁揃えなしの手軽な見出し。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">logging.jl · log_section</div>
+<pre>"""'--- title ---' のようなセクション見出しを出力する。"""
+function log_section(title::AbstractString)
+    println("\n--- $(strip(title)) ---")
+    return nothing
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>"\n--- … ---"</code> — 先頭の <code>\n</code> で<b>1 行ぶんの空行</b>を作ってから見出しを出す。前の出力とのあいだに余白ができ、目で段落が追いやすくなる。</li>
+        <li><code>strip(title)</code> — ここでも<b>前後の空白をトリム</b>してから <code>---</code> で挟む。余分な空白で <code>--- title ---</code> の体裁が崩れないようにする。</li>
+        <li><code>log_banner</code> と違い <b>78 桁埋めはしない</b>。<code>---</code> はタイトルの長さちょうどに寄り添う、軽量な見出し。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>使い分け：</b> 大きな節の頭には <code>log_banner</code>（78 桁の帯）、その中の小段落には <code>log_section</code>（<code>--- … ---</code>）と、<b>見出しの階層</b>を 2 段で表現できる。
+      </div>
+
+      <div class="related">関連：<code>log_banner</code>（上位の見出し）／ <code>log_hr</code>／ <code>log_kv</code>（見出しの下に並べる key/value）</div>
+    </div>
+
+    <!-- ============ log_kv ============ -->
+    <div class="fn-row">
+      <span class="fn-name">log_kv<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">key を <code>key_width</code> で桁揃えして <code>  key : value</code> を出力</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">log_kv(key::AbstractString, value; key_width::Int=20) &rarr; nothing（<code>  key                  : value</code>）</div>
+
+      <h4>概要</h4>
+      <p>
+        <b>キーと値のペア</b>を桁揃えして出力する。キーを <code>key_width</code>（既定 20）で<b>右側を空白パディング</b>し、
+        <code>  key                  : value</code> のように <code>:</code> の位置を揃える。設定値やパラメータの一覧を
+        縦に並べたときに、値の開始列がそろって読みやすくなる。<code>value</code> は型を問わない（数値でも文字列でも可）。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">logging.jl · log_kv</div>
+<pre>"""key : value を桁揃えして出力する。"""
+function log_kv(key::AbstractString, value; key_width::Int=20)
+    k = rpad(String(key), key_width)
+    println("  $(k) : $(value)")
+    return nothing
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>value</code> に<b>型注釈が無い</b>点に注目。<code>Int</code> でも <code>Float64</code> でも文字列でも受け取り、<code>$(value)</code> の文字列補間でそのまま表示する。</li>
+        <li><code>k = rpad(String(key), key_width)</code> — キーを <code>key_width</code> 桁まで<b>右側に空白を足して</b>揃える（<code>rpad</code> = 右パディング）。<code>String(key)</code> で <code>AbstractString</code> を素の <code>String</code> に確定させてから渡す。</li>
+        <li>キーが <code>key_width</code> より長ければ <code>rpad</code> は<b>切り詰めず</b>そのまま返すので、その行だけ <code>:</code> の位置がずれる（あくまで最小幅の指定）。</li>
+        <li><code>println("  $(k) : $(value)")</code> — 先頭 2 スペースでインデントし、<code>桁揃え済みキー</code>＋<code> : </code>＋<code>値</code>。<code>log_kv("kmesh", 8)</code> なら <code>  kmesh                : 8</code> のような 1 行になる。</li>
+      </ul>
+
+      <div class="related">関連：<code>log_section</code>（この key/value 群の見出し）／ <code>log_banner</code></div>
+    </div>
+
+    <div class="note">
+      ここから下は話題が変わる。上の 4 つが<b>ログの体裁づくり</b>だったのに対し、以下の 3 つ
+      （<code>_reduce_fraction</code> / <code>_frac_str</code> / <code>format_grid_fraction</code>）は
+      <b>分数座標の整形</b>を担う。k-path や q 点のラベルを <code>0</code>・<code>1/4</code>・<code>-3/8</code> のような
+      約分済み分数で表示するための下請けと、その入口の関数だ。
+    </div>
+
+    <!-- ============ _reduce_fraction ============ -->
+    <div class="fn-row">
+      <span class="fn-name">_reduce_fraction<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>num/den</code> を整数演算で約分し、分母を正に正規化（下請け）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">_reduce_fraction(num::Int, den::Int) &rarr; (num', den')（既約・分母正）</div>
+
+      <h4>概要</h4>
+      <p>
+        整数の分子・分母 <code>num/den</code> を、<b>整数演算だけで約分</b>する下請け関数（名前の先頭 <code>_</code> は
+        「内部用」の目印）。分母が 0 ならエラー、分母が負なら<b>符号を分子へ移して分母を正に正規化</b>し、
+        最後に <code>gcd</code>（最大公約数）で割って既約分数にする。<code>-2/-8</code> なら <code>(1, 4)</code> を、
+        <code>3/-8</code> なら <code>(-3, 8)</code> を返す。浮動小数点を使わないので<b>丸め誤差が入らない</b>のが要点。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">logging.jl · _reduce_fraction</div>
+<pre>"""num/den を整数演算で約分する。"""
+function _reduce_fraction(num::Int, den::Int)
+    den == 0 &amp;&amp; throw(ArgumentError("den must be nonzero"))
+    if den &lt; 0
+        num = -num
+        den = -den
+    end
+    g = gcd(abs(num), abs(den))
+    return div(num, g), div(den, g)
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>den == 0 &amp;&amp; throw(ArgumentError(...))</code> — <b>短絡評価によるガード</b>。<code>den</code> が 0 のときだけ右辺の <code>throw</code> が走り、<b>0 除算を未然に弾く</b>。<code>if</code> を書かずに 1 行で前提条件を表す Julia のイディオム。</li>
+        <li><code>if den &lt; 0 … num=-num; den=-den</code> — 分母が負なら<b>符号を分子側へ移す</b>。これで戻り値の<b>分母は常に正</b>になり、符号は必ず分子が持つ（共通規約の「分母を正に正規化」）。</li>
+        <li><code>g = gcd(abs(num), abs(den))</code> — 分子・分母の<b>絶対値</b>の最大公約数。<code>gcd</code> に絶対値を渡して、公約数そのものは正の値として得る。</li>
+        <li><code>div(num, g), div(den, g)</code> — <code>div</code> は<b>整数除算</b>。<code>g</code> は両者の公約数なので必ず割り切れ、<b>既約な (num', den')</b> をタプルで返す。<code>num</code> の符号は保たれる。</li>
+        <li>例：<code>_reduce_fraction(-2, -8)</code> → 分母正規化で <code>(2, 8)</code> → <code>gcd=2</code> → <code>(1, 4)</code>。<code>_reduce_fraction(0, 5)</code> → <code>gcd(0,5)=5</code> → <code>(0, 1)</code>。</li>
+      </ul>
+
+      <div class="warn-box">
+        <b>つまずきポイント：</b> 入力は <code>Int</code> 限定。浮動小数点の座標（例 <code>0.25</code>）をそのまま渡すことはできず、あくまで<b>「分子・分母がすでに整数で分かっている」</b>格子座標に使う。<code>den=0</code> は即エラーなので、呼び出し側は分母（＝格子分割数 <code>N</code> など）が 0 でないことを保証しておく。
+      </div>
+
+      <div class="related">関連：<code>_frac_str</code>（この結果を文字列化）／ <code>format_grid_fraction</code>（最終的な入口）</div>
+    </div>
+
+    <!-- ============ _frac_str ============ -->
+    <div class="fn-row">
+      <span class="fn-name">_frac_str<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">約分した分数を文字列に — 分母 1 なら整数だけ、他は <code>n/d</code></span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">_frac_str(num::Int, den::Int) &rarr; String（例 <code>"0"</code>・<code>"1/4"</code>・<code>"-3/8"</code>）</div>
+
+      <h4>概要</h4>
+      <p>
+        <code>_reduce_fraction</code> で約分してから、その結果を<b>文字列に整形</b>する下請け。<b>分母が 1 なら分子だけ</b>
+        （整数に見せる）、そうでなければ <code>n/d</code> の形で返す。<code>_frac_str(2, 8)</code> → <code>"1/4"</code>、
+        <code>_frac_str(0, 5)</code> → <code>"0"</code>、<code>_frac_str(-3, 8)</code> → <code>"-3/8"</code>。
+        軸ラベルに載せられる、人が読める分数表現がここで完成する。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">logging.jl · _frac_str</div>
+<pre>"""約分した分数を文字列にする。例: '0', '1/4', '-3/8'。"""
+function _frac_str(num::Int, den::Int)
+    n, d = _reduce_fraction(num, den)
+    return d == 1 ? string(n) : string(n, "/", d)
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>n, d = _reduce_fraction(num, den)</code> — まず約分。以降は<b>既約・分母正</b>の <code>(n, d)</code> を扱う。約分の責務は下請けに委ね、この関数は「見せ方」だけに集中する。</li>
+        <li><code>d == 1 ? string(n) : string(n, "/", d)</code> — <b>三項演算</b>。分母が 1 なら <code>string(n)</code> で<b>整数だけ</b>（<code>"3/1"</code> ではなく <code>"3"</code>）。そうでなければ <code>string(n, "/", d)</code> で <code>n/d</code>。</li>
+        <li>分母正規化のおかげでマイナス記号は必ず<b>先頭の分子</b>に付く。だから <code>"3/-8"</code> のような表記は生まれず、<code>"-3/8"</code> に揃う。</li>
+        <li><code>string(n, "/", d)</code> は複数引数を<b>連結</b>する書き方（<code>"$(n)/$(d)"</code> と同義）。区切り文字 <code>/</code> を挟んで分子・分母を並べる。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>ゼロの扱い：</b> <code>_frac_str(0, N)</code> は約分で <code>(0, 1)</code> になり、分母 1 の分岐に入って <code>"0"</code> を返す。<code>"0/1"</code> や <code>"0/N"</code> にならないので、原点ラベルがすっきり <code>0</code> と表示される。
+      </div>
+
+      <div class="related">関連：<code>_reduce_fraction</code>（前段の約分）／ <code>format_grid_fraction</code>（この関数を呼ぶ入口）</div>
+    </div>
+
+    <!-- ============ format_grid_fraction ============ -->
+    <div class="fn-row">
+      <span class="fn-name">format_grid_fraction<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">格子インデックス <code>i (1..N)</code> を分数座標 <code>(i-1)/N</code> に整形（公開入口）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">format_grid_fraction(i::Int, N::Int) &rarr; String（<code>i=1&rarr;"0"</code>, <code>i=2,N=4&rarr;"1/4"</code>）</div>
+
+      <h4>概要</h4>
+      <p>
+        <b>1 始まりの格子インデックス</b> <code>i</code>（<code>1..N</code>）を、分数座標 <code>(i-1)/N</code> の文字列に整形する
+        <b>公開の入口関数</b>。<code>N=4</code> なら <code>i=1,2,3,4</code> がそれぞれ <code>"0"</code>・<code>"1/4"</code>・
+        <code>"1/2"</code>・<code>"3/4"</code> になる。範囲外の <code>i</code> は <code>ArgumentError</code> で弾く。
+        q 点や k-path の高対称点ラベルを、割り切れる分数できれいに表示するために使う。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">logging.jl · format_grid_fraction</div>
+<pre>"""格子インデックス i (1..N) を分数座標 (i-1)/N に整形する。"""
+function format_grid_fraction(i::Int, N::Int)
+    (1 &lt;= i &lt;= N) || throw(ArgumentError("index out of range: i=$i (N=$N)"))
+    return _frac_str(i - 1, N)
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>(1 &lt;= i &lt;= N) || throw(ArgumentError(...))</code> — <b>範囲ガード</b>。<code>i</code> が <code>1..N</code> の外なら短絡評価で <code>throw</code>。<code>||</code> は「左が真ならそこで終わり、偽のときだけ右を評価」する Julia のイディオム。エラー文に <code>i</code> と <code>N</code> の実値を埋め込むので原因が分かりやすい。</li>
+        <li><code>i - 1</code> — <b>1 始まりを 0 始まりへ</b>。<code>i=1</code> が分子 0（＝原点）に対応する。物理側の 0 起点座標に合わせるためのオフセット。</li>
+        <li><code>_frac_str(i - 1, N)</code> — 分子 <code>i-1</code>・分母 <code>N</code> を渡し、<b>約分＋文字列化</b>を下請けに任せる。<code>i=3, N=4</code> なら <code>_frac_str(2, 4)</code> → <code>"1/2"</code>。</li>
+        <li>戻り値は約分済み。<code>N=8</code> の <code>i=1..8</code> は <code>"0", "1/8", "1/4", "3/8", "1/2", "5/8", "3/4", "7/8"</code> と、割り切れるものは自動で約分されて並ぶ。</li>
+      </ul>
+
+      <div class="warn-box">
+        <b>境界の約束：</b> インデックスは <b>1 始まり・上限 <code>N</code></b>。<code>i=0</code> や <code>i=N+1</code> は範囲外エラーになる。返る座標は <code>[0, 1)</code> 側（<code>i=N</code> で <code>(N-1)/N</code>）で、<code>1</code> ちょうどは出ない点に注意。格子分割 <code>N</code> と 1 始まりの反復インデックスをそのまま渡す設計。
+      </div>
+
+      <div class="related">
+        関連：<code>format_grid_fraction</code> は <code>_frac_str</code> &rarr; <code>_reduce_fraction</code> を内部で使う<b>連鎖</b>（入口 &rarr; 文字列化 &rarr; 約分）。これら整形群と上のログ整形群は、setup / run のドライバスクリプトが<b>実行ログや軸ラベル</b>を出すのに使う。
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <b>全体像：</b> 前半の <code>log_hr</code> / <code>log_banner</code> / <code>log_section</code> / <code>log_kv</code> が
+    バッチ実行の<b>進捗ログ</b>を <code>==== TITLE ====</code>・<code>--- title ---</code>・
+    <code>  key                  : value</code> の一定体裁に整え、後半の
+    <code>_reduce_fraction</code> &rarr; <code>_frac_str</code> &rarr; <code>format_grid_fraction</code> の連鎖が
+    <b>k-path / q 点のラベル</b>を <code>0</code>・<code>1/4</code>・<code>-3/8</code> のような約分済み分数で用意する。
+    どちらも外部依存なしで、setup / run のドライバから気軽に呼べる軽量ユーティリティとして働く。
+  </div>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ — Logging</p>
+</footer>
+
+<script>
+  document.querySelectorAll('.fn-row').forEach(function (row) {
+    row.addEventListener('click', function () {
+      row.classList.toggle('open');
+    });
+  });
+</script>
+
+</body>
+</html>

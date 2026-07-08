@@ -283,6 +283,49 @@
             <a href="code/functions/eliashberg.html">Eliashberg — 線形化ギャップ方程式</a>
             <div class="desc">有効相互作用からギャップ関数を組み、固有値 λ=1 となる Tc を探す</div>
           </li>
+          <li>
+            <a href="code/functions/lattice.html">Lattice — 格子ベクトル・逆格子・ブリルアンゾーン</a>
+            <div class="desc">実空間/逆格子ベクトル、六角形・正方 BZ のポリゴンとマスク、プロット用 k メッシュを作る幾何ユーティリティ</div>
+          </li>
+          <li>
+            <a href="code/functions/kplot.html">KPlot — 充填BZマップとゲージ固定</a>
+            <div class="desc">χ(q)・ギャップ φ(k) を六角形 BZ に充填して描くためのタイル複製・BZ マスクと、バンド表示用のゲージ固定</div>
+          </li>
+          <li>
+            <a href="code/functions/logging.html">Logging — ログ整形と分数座標</a>
+            <div class="desc">バナー・見出し・key/value のログ整形と、k-path・q 点ラベル用の分数座標フォーマット</div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 実行スクリプト (run) -->
+      <div class="section" id="run">
+        <h2 class="font-serif">実行スクリプト (run)</h2>
+        <ul>
+          <li>
+            <a href="code/run/1_setup.html">1. Setup — 非相互作用セットアップ</a>
+            <div class="desc">hop.dat → H(k) 構築・対角化・化学ポテンシャル μ(rfill)・占有数・k-path バンドを計算し simulation.h5 に保存</div>
+          </li>
+          <li>
+            <a href="code/run/2_run_FLEX.html">2. FLEX — 自己無撞着計算</a>
+            <div class="desc">G→χ0→Veff→Σ→μ の SCF ループ、Stoner(Uχ0) 診断、感受率の主要モード評価。大配列はメモリ連結</div>
+          </li>
+          <li>
+            <a href="code/run/3_run_eliashberg.html">3. Eliashberg — 線形化ギャップ方程式</a>
+            <div class="desc">__FLEX_CACHE__ の G・χ から線形化 Eliashberg 方程式を解き、固有値 λ とギャップ φ を求める</div>
+          </li>
+          <li>
+            <a href="code/run/4_plot_nonint.html">4. Plot nonint — バンド/DOS/フェルミ面</a>
+            <div class="desc">simulation.h5 から非相互作用のバンド+DOS・DOS 単体・フェルミ面（E=μ₀ 等高線）を描画</div>
+          </li>
+          <li>
+            <a href="code/run/5_plot_flex.html">5. Plot FLEX — 感受率マップ</a>
+            <div class="desc">χ0/χ_s/χ_c の静的(ν=0)感受率を対角化・軌道・バンド表示で BZ 充填マップに描画</div>
+          </li>
+          <li>
+            <a href="code/run/6_plot_eliashberg.html">6. Plot Eliashberg — 超伝導ギャップ φ(k)</a>
+            <div class="desc">ギャップ φ を軌道/バンド表示（Re・abs）とフェルミ面重ねで描画。TR ゲージ固定込み</div>
+          </li>
         </ul>
       </div>
 

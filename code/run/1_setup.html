@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup — 非相互作用セットアップ | コード解説</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      background-color: #fcfbfa; color: #2c2a29;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      line-height: 1.9; -webkit-font-smoothing: antialiased;
+    }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 820px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 0.5px; }
+    main { max-width: 820px; margin: 0 auto; padding: 48px 24px 100px; }
+    h2 {
+      font-size: 14pt; font-weight: 600; color: #2c2a29;
+      margin: 46px 0 8px; letter-spacing: 0.4px;
+      border-left: 3px solid #4a69b5; padding-left: 14px;
+    }
+    h2 .file-kind { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8.5pt; color: #96938f; font-weight: 500; letter-spacing: 0.5px; margin-left: 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .lead { font-size: 10.5pt; color: #4a4845; margin: 4px 0 24px; }
+    code { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 16px 18px; border-radius: 4px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9pt; overflow-x: auto; margin: 16px 0; line-height: 1.7; }
+    .note { background: #eef1f9; border-left: 3px solid #4a69b5; padding: 14px 18px; margin: 22px 0; font-size: 10pt; color: #2c2a29; border-radius: 0 4px 4px 0; }
+    footer { max-width: 820px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+
+    /* ── file-level import banner ─────────────── */
+    .imports { margin: 14px 0 30px; border: 1px solid #e3e0da; border-radius: 6px; overflow: hidden; }
+    .imports .code-head { background: #edeae4; padding: 6px 14px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .imports pre { margin: 0; border-radius: 0; background: #fbfaf8; }
+
+    /* ── function list ────────────────────────── */
+    .fn-list { margin: 6px 0 8px; border-top: 1px solid #e6e4e0; }
+    .fn-row {
+      cursor: pointer; padding: 15px 8px 15px 6px;
+      border-bottom: 1px solid #ece9e4; transition: background 0.15s;
+      display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    }
+    .fn-row:hover { background: #f5f3ef; }
+    .fn-name {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 11pt; font-weight: 600; color: #1a3a6a; letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    .fn-ind { font-size: 7pt; color: #b0a898; margin-left: 5px; transition: transform 0.2s ease; display: inline-block; vertical-align: middle; }
+    .fn-row.open .fn-ind { transform: rotate(90deg); }
+    .fn-sub { font-size: 9.5pt; color: #73706c; flex: 1; min-width: 220px; }
+
+    /* ── detail panel ─────────────────────────── */
+    .fn-detail {
+      display: none; background: #f9f7f4; border-left: 3px solid #4a69b5;
+      padding: 22px 26px; margin: 0 0 2px; animation: detailIn 0.18s ease-out;
+    }
+    .fn-row.open + .fn-detail { display: block; }
+    @keyframes detailIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .fn-detail h4 { font-size: 10pt; font-weight: 600; color: #2c2a29; margin: 20px 0 8px; letter-spacing: 0.3px; }
+    .fn-detail h4:first-of-type { margin-top: 0; }
+    .fn-detail p { font-size: 10pt; margin: 0 0 10px; color: #3a3836; }
+    .syntax-box {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 9pt; background: #edeae4; border-radius: 3px;
+      padding: 10px 14px; margin: 0 0 4px; color: #2c2a29; overflow-x: auto;
+    }
+    .code-wrap { margin: 12px 0 4px; border: 1px solid #e3e0da; border-radius: 5px; overflow: hidden; }
+    .code-head { background: #edeae4; padding: 5px 13px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .code-wrap pre { margin: 0; border-radius: 0; background: #fbfaf8; font-size: 8.7pt; line-height: 1.68; padding: 13px 15px; }
+
+    /* ── "読み方" mapping list ────────────────── */
+    .read-list { list-style: none; padding: 0; margin: 6px 0 4px; }
+    .read-list > li { position: relative; padding: 7px 0 7px 18px; font-size: 9.8pt; color: #3a3836; border-bottom: 1px dashed #e7e3dc; }
+    .read-list > li:last-child { border-bottom: none; }
+    .read-list > li::before { content: "▸"; position: absolute; left: 0; top: 8px; color: #b0a898; font-size: 8pt; }
+    .read-list code { font-size: 8.9pt; color: #1a3a6a; background: #edeae4; }
+    .read-list b { color: #253a6a; }
+
+    .warn-box {
+      background: #fef9ee; border-left: 3px solid #d4a017;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #5a4a1a;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .tip-box {
+      background: #eef7f0; border-left: 3px solid #4a8a5a;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #234a30;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .related { margin-top: 16px; padding-top: 10px; border-top: 1px solid #e3ded6; font-size: 9pt; color: #73706c; }
+    .related code { font-size: 8.9pt; color: #1a3a6a; }
+
+    /* ── SCF ループ図 ─────────────────────────── */
+    .flow { margin: 10px 0 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 9pt; }
+    .flow .step { font-family: "SFMono-Regular","Consolas","Menlo",monospace; background: #edeae4; border: 1px solid #e0dcd3; border-radius: 4px; padding: 5px 10px; color: #1a3a6a; }
+    .flow .arrow { color: #b0a898; font-size: 10pt; }
+  </style>
+  <link rel="stylesheet" href="../../site.css">
+  <script defer src="../../site.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../../index.html">研究メモ</a> &rsaquo; コード解説 &rsaquo; 実行スクリプト &rsaquo; Setup</div>
+  <h1 class="font-serif">1. Setup — 非相互作用セットアップ</h1>
+  <p class="font-serif">— hop.dat から H(k) を組み、μ・占有数・k-path バンドを計算して simulation.h5 に保存する準備スクリプト &nbsp;|&nbsp; 関数名をクリックで詳細 —</p>
+</header>
+
+<main>
+
+  <p class="lead">
+    AA-stack bilayer honeycomb の非相互作用セットアップ。後段 <a href="../functions/flex.html">FLEX</a> /
+    <a href="../functions/eliashberg.html">Eliashberg</a> の土台（<code>H(k)</code>・対角化・<code>μ</code>・k-path バンド）を作って
+    <code>simulation.h5</code> に保存する、パイプライン<b>最初のスクリプト</b>。モデルのホッピングは
+    <code>gen_hop.py</code> が書き出す <code>hop.dat</code> に外出しされ、この <code>1_setup.jl</code> は
+    それを読んで一体問題を解き、結果を HDF5 に固める役割を担う。
+  </p>
+
+  <div class="note">
+    <b>使い方：</b> まず <code>python gen_hop.py --t 1.0 --tpp -0.5 --t_perp 0.8 -o hop.dat</code> で <code>hop.dat</code> を作り、
+    続けて <code>julia --project=. 1_setup.jl</code>。<br>
+    <b>入力：</b> <code>hop.dat</code>（＋任意で <code>KPOINTS</code>）。<br>
+    <b>出力：</b> <code>simulation.h5</code>（<code>params</code> / <code>nonint</code> 各グループ）、<code>Noint/band_kpath.dat</code>。<br>
+    <b>依存：</b> <code>include("functions/nonint.jl")</code>（<a href="../functions/nonint.html">Nonint</a> の関数群を読み込む）。
+  </div>
+
+  <div class="flow">
+    <span class="step">hop.dat</span><span class="arrow">&rarr;</span>
+    <span class="step">load_Hamiltonian</span><span class="arrow">&rarr;</span>
+    <span class="step">対角化 + ゲージ固定</span><span class="arrow">&rarr;</span>
+    <span class="step">μ(rfill)</span><span class="arrow">&rarr;</span>
+    <span class="step">占有数</span><span class="arrow">&rarr;</span>
+    <span class="step">k-path バンド</span><span class="arrow">&rarr;</span>
+    <span class="step">simulation.h5</span>
+  </div>
+
+  <h2 class="font-serif">1_setup.jl<span class="file-kind">Julia</span></h2>
+  <p class="lead">
+    パイプラインのドライバ。パラメータ Dict を1か所にまとめ、<code>run_setup()</code> 一発で
+    「読み込み → 対角化 → <code>μ</code>・占有数 → k-path → 保存」まで通す。冒頭の依存と定数は次のとおり。
+  </p>
+
+  <div class="imports">
+    <div class="code-head">1_setup.jl — 冒頭</div>
+<pre>using HDF5
+using DelimitedFiles
+using Printf
+using LinearAlgebra
+
+include("functions/nonint.jl")
+
+const SIM_FILENAME = "simulation.h5"</pre>
+  </div>
+
+  <div class="note">
+    <b>パラメータ解説（このページの目玉）：</b> <code>1_setup.jl</code> の設定はすべて 1 つの
+    <code>params::Dict{String,Any}</code> に集約されている。「ここだけ編集すれば OK」という設計で、
+    このスクリプトが使うもの（モデル記録・格子・グリッド・フィリング）と、
+    後段 <a href="../functions/flex.html">FLEX</a> / <a href="../functions/eliashberg.html">Eliashberg</a>
+    が読むものが同じ Dict に同居している。丸ごと <code>simulation.h5</code> の <code>params</code> グループに保存されるため、
+    <b>設定の単一の情報源（single source of truth）</b>として下流の全スクリプトが参照する。
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-head">1_setup.jl · params（設定 Dict 全体）</div>
+<pre>params = Dict{String,Any}(
+    # --- モデル（実体は hop.dat。ここは記録用メモ）---
+    "model_t"      =&gt; 1.0,      # 最近接 t
+    "model_tpp"    =&gt; -0.5,     # 第三近接 t''
+    "model_t_perp" =&gt; 0.8,      # AA 層間 t_perp
+    "hopping_path" =&gt; "./hop.dat",
+
+    # --- 格子（BZ 形状・k-path 距離のため）---
+    "lattice_type"   =&gt; "hex",
+    "lattice_a"      =&gt; 1.0,
+    "Norb_each_site" =&gt; [2, 2],  # 層1(A,B), 層2(A,B) → Norb=4
+    "kpath_filename" =&gt; "KPOINTS",
+
+    # --- 数値グリッド / 温度 ---
+    "Nqx" =&gt; 32, "Nqy" =&gt; 32, "Nqz" =&gt; 1,
+    "temperature" =&gt; 0.01,
+
+    # --- フィリング ---
+    # rfill = per-spin filling（spin 1つ分の占有数の総和, calc_mu_band の引数そのもの）。
+    #   範囲 0..Norb。 full filled = Norb（軌道数）, half filling = Norb/2。
+    #   全電子数（spin 2 込み） n_total = 2*rfill。
+    #   ※ Norb=4 の今は rfill=4.0 で full, rfill=2.0 で half。
+    "rfill" =&gt; 1.5,
+
+    # --- FLEX / 相互作用（2_run_FLEX.jl 以降で使用）---
+    "Nw"      =&gt; 32,       # 松原周波数の数（動作確認は軽め。本番は 1024 等）
+    "U"       =&gt; 2.0,       # Hubbard U
+    "Uprime"  =&gt; 0.0, "Jhund" =&gt; 0.0, "Jpair" =&gt; 0.0,
+    "sub_self0"  =&gt; true,   # Σ から最小松原の実部を引く（第一原理バンド等で使用）
+    "mix_factor" =&gt; 0.2,    # Σ の混合率
+    "RPA"        =&gt; 0,      # 0=FLEX, 1=RPA（1回で止める）
+    "flex_maxiter" =&gt; 2000,
+    "flex_tol"     =&gt; 1e-5, # 収束判定（Σ の絶対誤差）
+    "flex_eval_Uchi0_interval" =&gt; 10,
+    # Stoner ガード: action = "abort" | "scale" | "continue"
+    "flex_Uchi0_action" =&gt; "abort",
+    "flex_Uchi0_warn_threshold" =&gt; 0.99,
+    "flex_Uchi0_over_threshold" =&gt; 0.999,
+    "flex_Uchi0_over_consecutive" =&gt; 10,
+    "flex_is_Uchi0_scale" =&gt; false,
+    "flex_maxeigval_tol"  =&gt; 0.99,
+    # μ ソルバ切替（絶対誤差がこれ以上なら Brent、以下なら Secant）
+    "flex_switch_solver_tol" =&gt; 2.0,
+    "flex_min_dmu" =&gt; 0.1,
+    "flex_max_dmu" =&gt; 1.0,
+
+    # --- Eliashberg（3_run_eliashberg.jl 用）---
+    # psym: 0/2=spm(s±), 1/3=dx2-y2, 5/6=dxy, 4=random（初期Δの対称性）
+    # ssym: 1=singlet, 0=triplet, 2=no projection, 3=singlet+triplet 両方
+    "psym" =&gt; 0,
+    "ssym" =&gt; 3,
+    "eliash_solver"  =&gt; "Lanczos",     # "Lanczos" | "PowerMethod"
+    "eliash_howmany" =&gt; 2,             # 求める固有値の数（Lanczos のみ &gt;1 可）
+    "eliash_Lanczos_ncv" =&gt; 20,
+    "eliash_Lanczos_maxiter" =&gt; 300,
+    "eliash_Lanczos_which" =&gt; "LR",
+    "eliash_Power_maxiter" =&gt; 1000,
+    "eliash_tol" =&gt; 1e-5,
+    "eliash_init_symmetry" =&gt; "from_psym",
+    "eliash_init_seed" =&gt; 42,
+)</pre>
+  </div>
+
+  <h4 class="font-serif" style="border-left:3px solid #4a69b5; padding-left:12px; font-size:11pt; margin:26px 0 6px;">① モデル（記録用メモ）</h4>
+  <ul class="read-list">
+    <li><code>model_t</code> / <code>model_tpp</code> / <code>model_t_perp</code> — 最近接 <code>t</code>、第三近接 <code>t''</code>、AA 層間 <code>t<sub>⊥</sub></code>。<b>実体は <code>hop.dat</code> 側</b>にあり、ここの数値は計算に直接は使われない<b>記録用メモ</b>（どの <code>gen_hop.py</code> 設定で作った <code>hop.dat</code> かを <code>simulation.h5</code> に残すため）。</li>
+    <li><code>hopping_path</code> — 読み込む <code>hop.dat</code> のパス（既定 <code>"./hop.dat"</code>）。実際に <code>load_Hamiltonian</code> に渡すのはこれ。</li>
+  </ul>
+
+  <h4 class="font-serif" style="border-left:3px solid #4a69b5; padding-left:12px; font-size:11pt; margin:26px 0 6px;">② 格子</h4>
+  <ul class="read-list">
+    <li><code>lattice_type="hex"</code> / <code>lattice_a=1.0</code> — 六方格子と格子定数。<b>BZ 形状・k-path 距離</b>を正しく測るための実空間ベクトル生成に使う（<code>define_lattice_vectors</code>）。</li>
+    <li><code>Norb_each_site=[2, 2]</code> — サイトごとの軌道数。層1 の (A,B) で 2、層2 の (A,B) で 2 → <b><code>Norb = sum = 4</code></b>。この <code>Norb</code> が <code>H(k)</code> の行列サイズ・フィリング上限を決める。</li>
+    <li><code>kpath_filename="KPOINTS"</code> — バンド図用の高対称点ファイル名。<b>存在すれば</b> k-path バンドを計算し、無ければその段だけスキップする（任意入力）。</li>
+  </ul>
+
+  <h4 class="font-serif" style="border-left:3px solid #4a69b5; padding-left:12px; font-size:11pt; margin:26px 0 6px;">③ 数値グリッド / 温度</h4>
+  <ul class="read-list">
+    <li><code>Nqx,Nqy,Nqz = 32,32,1</code> — k メッシュ分割数。2D 系なので <code>Nqz=1</code>。この分割で <code>load_Hamiltonian</code> が正則メッシュ上の <code>H(k)</code> を作る（後段 FLEX の FFT もこの格子で回る）。</li>
+    <li><code>temperature=0.01</code> — 温度 <code>T</code>。フェルミ分布・松原周波数のスケールを決める（<code>μ</code> と占有数の評価に直結）。</li>
+  </ul>
+
+  <h4 class="font-serif" style="border-left:3px solid #4a69b5; padding-left:12px; font-size:11pt; margin:26px 0 6px;">④ フィリング <code>rfill</code>（重要）</h4>
+  <ul class="read-list">
+    <li><code>rfill</code> は <b>per-spin filling</b>＝スピン1つ分の占有数の総和で、<code>calc_mu_band</code> にそのまま渡す引数（<code>Nfilling</code>）。値域は <code>0..Norb</code>。</li>
+    <li>基準点：<b>full filled = <code>Norb</code></b>（全軌道が埋まった状態）、<b>half filling = <code>Norb/2</code></b>。いまは <code>Norb=4</code> なので <code>rfill=4.0</code> で full、<code>rfill=2.0</code> で half。</li>
+    <li>全電子数（スピン 2 込み）は <code>n<sub>total</sub> = 2·rfill</code>。既定 <code>rfill=1.5</code> なら <code>n<sub>total</sub>=3.0</code>（4 軌道のうち平均 3 電子）。</li>
+    <li>この値が化学ポテンシャル <code>μ</code> を一意に決める目標量になる。範囲外（<code>rfill&lt;0</code> や <code>rfill&gt;Norb</code>）を渡すと <code>run_setup</code> 冒頭のチェックで <b>即エラー停止</b>する。</li>
+  </ul>
+
+  <h4 class="font-serif" style="border-left:3px solid #4a69b5; padding-left:12px; font-size:11pt; margin:26px 0 6px;">⑤ FLEX / 相互作用（2_run_FLEX.jl 以降で使用）</h4>
+  <ul class="read-list">
+    <li><code>Nw</code> — 松原周波数の本数。動作確認は軽め（32）、本番は 1024 等に上げる。<code>U</code>・<code>Uprime</code>・<code>Jhund</code>・<code>Jpair</code> は Hubbard 相互作用パラメータ（<code>U</code>=オンサイト、残りは軌道間・フント・ペアホッピング）。</li>
+    <li><code>sub_self0=true</code> — <code>Σ</code> から最小松原成分の実部を引く静的補正（第一原理バンド等で <code>μ</code> と二重シフトしないため）。<code>mix_factor=0.2</code> — SCF の <code>Σ</code> 線形混合率。<code>RPA=0</code> — <code>0=FLEX</code> / <code>1=RPA</code>（1 回で止める）。</li>
+    <li><code>flex_maxiter</code> / <code>flex_tol</code> — SCF の最大反復と収束判定（<code>Σ</code> の絶対誤差）。<code>flex_eval_Uchi0_interval</code> — Stoner 因子を評価する間隔。</li>
+    <li><b>Stoner ガード</b> <code>flex_Uchi0_*</code> — <code>Uχ<sub>0</sub>→1</code> の磁気不安定で発散するのを防ぐ安全弁。<code>flex_Uchi0_action</code> は <code>"abort" | "scale" | "continue"</code>、<code>*_warn_threshold=0.99</code> / <code>*_over_threshold=0.999</code> / <code>*_over_consecutive=10</code> で警告・打ち切りの閾値と連続回数を、<code>flex_is_Uchi0_scale</code> / <code>flex_maxeigval_tol</code> で固有値の縮小を制御する。</li>
+    <li><b>μ ソルバ切替</b> <code>flex_switch_solver_tol=2.0</code> — <code>μ</code> の絶対誤差がこれ以上なら Brent、以下なら Secant を使う。<code>flex_min_dmu</code> / <code>flex_max_dmu</code> は探索区間幅の下限・上限。</li>
+  </ul>
+
+  <h4 class="font-serif" style="border-left:3px solid #4a69b5; padding-left:12px; font-size:11pt; margin:26px 0 6px;">⑥ Eliashberg（3_run_eliashberg.jl 用）</h4>
+  <ul class="read-list">
+    <li><code>psym</code> — <b>初期ギャップ <code>Δ</code> の対称性</b>。<code>0/2 = s±（spm）</code>、<code>1/3 = d<sub>x²-y²</sub></code>、<code>5/6 = d<sub>xy</sub></code>、<code>4 = random</code>。</li>
+    <li><code>ssym</code> — <b>スピン射影</b>。<code>1 = singlet</code>、<code>0 = triplet</code>、<code>2 = no projection（射影なし）</code>、<code>3 = singlet+triplet 両方</code>。既定は <code>psym=0, ssym=3</code>。</li>
+    <li><code>eliash_solver="Lanczos"</code>（<code>"Lanczos" | "PowerMethod"</code>）と <code>eliash_howmany=2</code>（求める固有値の数、<code>Lanczos</code> のみ <code>&gt;1</code> 可）。</li>
+    <li><code>eliash_Lanczos_ncv</code> / <code>*_maxiter</code> / <code>*_which="LR"</code>、<code>eliash_Power_maxiter</code>、<code>eliash_tol</code> — 各ソルバの反復・許容誤差。<code>eliash_init_symmetry="from_psym"</code> / <code>eliash_init_seed=42</code> — 初期 <code>Δ</code> の生成規則と乱数シード。</li>
+  </ul>
+
+  <div class="tip-box">
+    ⑤⑥ は <code>1_setup.jl</code> では<b>使われず</b>、<code>simulation.h5</code> の <code>params</code> にそのまま格納されるだけ。
+    実際に読むのは <code>2_run_FLEX.jl</code>（⑤）と <code>3_run_eliashberg.jl</code>（⑥）。ここに置くのは
+    「1 ファイルで全設定が見渡せる」ようにするため。
+  </div>
+
+  <div class="fn-list">
+
+    <!-- ============ run_setup ============ -->
+    <div class="fn-row">
+      <span class="fn-name">run_setup<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">セットアップ本体。読み込み→対角化→<code>μ</code>・占有数→k-path→<code>simulation.h5</code> 保存を一気通貫（引数なし）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">run_setup()   # params を読み、simulation.h5 と Noint/band_kpath.dat を書き出す</div>
+
+      <h4>概要</h4>
+      <p>
+        <code>params</code> を展開して非相互作用セットアップの全工程を実行するドライバ関数。コードが長いので、
+        ソースの段階ごとに <b>(a) パラメータ展開＋範囲チェック → (b) 格子・逆格子 → (c) H(k) 構築・対角化 →
+        (d) μ・占有数 → (e) k-path バンド → (f) simulation.h5 保存</b> に分けて読む。数値の中身（<code>H(k)</code> 構築・
+        対角化・<code>μ</code> 求根）は <a href="../functions/nonint.html">Nonint</a> の関数に委ね、この関数は<b>手順の配線</b>に徹する。
+      </p>
+
+      <h4>(a) パラメータ展開＋ rfill 範囲チェック</h4>
+      <div class="code-wrap">
+        <div class="code-head">1_setup.jl · run_setup（パラメータ展開）</div>
+<pre>Norb = sum(params["Norb_each_site"])
+Nqx, Nqy, Nqz = params["Nqx"], params["Nqy"], params["Nqz"]
+T = Float64(params["temperature"])
+rfill = Float64(params["rfill"])     # = per-spin filling（0..Norb, full=Norb）
+Nfilling = rfill                     # calc_mu_band の引数そのもの
+hopping_path = params["hopping_path"]
+
+# フィリングの範囲チェック（軌道数 Norb がマックス）
+(0.0 &lt;= rfill &lt;= Norb) || error("rfill=$rfill is out of range [0, Norb=$Norb] (full filled = Norb).")</pre>
+      </div>
+      <ul class="read-list">
+        <li><code>Norb = sum(params["Norb_each_site"])</code> — <code>[2,2]</code> の和で <code>Norb=4</code>。以降の行列サイズ・フィリング上限の基準になる。</li>
+        <li><code>rfill</code> と <code>Nfilling</code> は<b>同じ値</b>（<code>Nfilling=rfill</code>）。名前を分けているのは「設定名（<code>rfill</code>）」と「<code>calc_mu_band</code> の引数名（<code>Nfilling</code>）」を対応づけて読みやすくするため。</li>
+        <li><code>(0.0 &lt;= rfill &lt;= Norb) || error(...)</code> — フィリングが <code>[0, Norb]</code> の範囲外なら<b>即エラー停止</b>。<code>||</code> は「左が真なら何もしない、偽なら右の <code>error</code> を実行」という Julia のガード構文。<code>full filled = Norb</code> を超える指定を弾く。</li>
+      </ul>
+
+      <h4>(b) 格子・逆格子ベクトル</h4>
+      <div class="code-wrap">
+        <div class="code-head">1_setup.jl · run_setup（格子）</div>
+<pre>a1, a2 = define_lattice_vectors(; lattice_type=params["lattice_type"], a=Float64(params["lattice_a"]))
+b1, b2 = reciprocal_vectors_2d(a1, a2)</pre>
+      </div>
+      <ul class="read-list">
+        <li><code>define_lattice_vectors(; lattice_type="hex", a=1.0)</code> — 実空間の基本ベクトル <code>a1,a2</code> を作る（<a href="../functions/lattice.html"><code>lattice.jl</code></a>）。<code>lattice_type</code> と格子定数 <code>a</code> から六方格子を組む。</li>
+        <li><code>reciprocal_vectors_2d(a1, a2)</code> — 2D の逆格子ベクトル <code>b1,b2</code> を返す（<a href="../functions/lattice.html"><code>lattice.jl</code></a>）。後段の <b>k-path 距離を正しい計量で測る</b>ために <code>b1,b2</code> を <code>build_kpath</code> に渡す。</li>
+      </ul>
+
+      <h4>(c) H(k) 構築・対角化（＋ゲージ固定）</h4>
+      <div class="code-wrap">
+        <div class="code-head">1_setup.jl · run_setup（H(k) と対角化）</div>
+<pre>println("Loading Hamiltonian from: $hopping_path")
+ENERGY, hopping_df = load_Hamiltonian(hopping_path, Nqx, Nqy, Nqz, Norb; return_df=true)
+Nrvec = size(hopping_df, 1) ÷ Norb^2
+
+ENERGY_diag, UNITARY = diagonalize_Hamiltonian(ENERGY)
+fix_unitary_gauge!(UNITARY)</pre>
+      </div>
+      <ul class="read-list">
+        <li><code>load_Hamiltonian(...; return_df=true)</code> — <code>hop.dat</code> を読み、正則 k メッシュ上の <code>ENERGY[kx,ky,kz,i,j]</code> を構築。<code>return_df=true</code> で <b>読み込んだ DataFrame も一緒に返す</b>（後の k-path で再利用）。詳細は <a href="../functions/nonint.html"><code>load_Hamiltonian</code></a>。</li>
+        <li><code>Nrvec = size(hopping_df, 1) ÷ Norb^2</code> — 全行数を <code>Norb²=16</code> で割って、1 軌道ペアあたりの R ベクトル数を求める（<code>÷</code> は整数除算）。あとで <code>simulation.h5</code> にメタとして保存する。</li>
+        <li><code>diagonalize_Hamiltonian(ENERGY)</code> — 各 k で対角化し、バンド固有値 <code>ENERGY_diag</code> と固有ベクトル <code>UNITARY</code> を得る。ここでは <code>SIGMA</code> を渡さない＝<b>純粋な非相互作用バンド</b>。詳細は <a href="../functions/nonint.html"><code>diagonalize_Hamiltonian</code></a>。</li>
+        <li><code>fix_unitary_gauge!(UNITARY)</code> — 固有ベクトルの k ごとのランダム位相を除去（in-place）。末尾の <code>!</code> は破壊的更新の慣習。詳細は <a href="../functions/nonint.html"><code>fix_unitary_gauge!</code></a>。</li>
+      </ul>
+
+      <h4>(d) 化学ポテンシャル μ・占有数</h4>
+      <div class="code-wrap">
+        <div class="code-head">1_setup.jl · run_setup（μ と占有数）</div>
+<pre>mu0 = calc_mu_band(ENERGY_diag, T, Nfilling)
+Ne_band, Ne_orb = get_Ne_no_interaction(ENERGY_diag, T, mu0, UNITARY)</pre>
+      </div>
+      <ul class="read-list">
+        <li><code>calc_mu_band(ENERGY_diag, T, Nfilling)</code> — バンド固有値・温度・目標フィリングから、電子数が <code>Nfilling</code> に一致する<b>化学ポテンシャル <code>μ<sub>0</sub></code></b>を求根で決める（<a href="../functions/nonint.html"><code>nonint.jl</code></a> 由来）。ここが <code>rfill</code> を <code>μ</code> に翻訳する要。</li>
+        <li><code>get_Ne_no_interaction(ENERGY_diag, T, mu0, UNITARY)</code> — 決まった <code>μ<sub>0</sub></code> のもとで<b>バンド別占有数 <code>Ne_band</code></b> と<b>軌道別占有数 <code>Ne_orb</code></b> を返す（<a href="../functions/nonint.html"><code>nonint.jl</code></a> 由来）。<code>UNITARY</code> でバンド→軌道の射影をかける。</li>
+        <li>整合チェック：<code>Σ Ne_band</code> が <code>rfill</code> に、<code>n<sub>total</sub>=2·Σ Ne_band</code> が <code>2·rfill</code> に一致するはず（スクリプトはこれをログ出力する）。</li>
+      </ul>
+
+      <h4>(e) k-path バンド（KPOINTS があれば）</h4>
+      <div class="code-wrap">
+        <div class="code-head">1_setup.jl · run_setup（k-path バンド, 抜粋）</div>
+<pre>kpath_file = String(params["kpath_filename"])
+has_kpath = isfile(kpath_file)
+kpath_data = kpath_bandE = kpath_unitary = nothing
+if has_kpath
+    info = read_kpath_kpoints(kpath_file)
+    kpath_data = build_kpath(info; b1_metric=b1, b2_metric=b2)
+    Nk = length(kpath_data.kdist)
+    Hk = hamiltonian_from_hopping_df(hopping_df, Norb, kpath_data.k_cart)
+    kpath_bandE, kpath_unitary = diagonalize_Hk(Hk)
+
+    # 目視用テキスト出力
+    mkpath("Noint")
+    band_table = Array{Float64}(undef, Nk, 5 + Norb)
+    for i in 1:Nk
+        band_table[i, 1] = i
+        band_table[i, 2:4] .= collect(kpath_data.k_frac[i])
+        band_table[i, 5] = kpath_data.kdist[i]
+        band_table[i, 6:end] = kpath_bandE[i, :]
+    end
+    open(joinpath("Noint", "band_kpath.dat"), "w") do io
+        write(io, "# idx kx_frac ky_frac kz_frac kdist band1..band$Norb  (Nk=$Nk)\n")
+        writedlm(io, band_table)
+    end
+else
+    println("KPOINTS not found: $kpath_file -&gt; skip k-path band.")
+end</pre>
+      </div>
+      <ul class="read-list">
+        <li><code>has_kpath = isfile(kpath_file)</code> — <code>KPOINTS</code> が<b>あるときだけ</b> k-path バンドを計算し、無ければ <code>else</code> でスキップ。バンド図は任意成果物という位置づけ。</li>
+        <li><code>read_kpath_kpoints(kpath_file)</code> → <code>build_kpath(info; b1_metric=b1, b2_metric=b2)</code> — 高対称点ファイルを読み、逆格子計量 <code>b1,b2</code> で<b>k-path（分数座標・デカルト座標・累積距離 <code>kdist</code>・目盛）</b>を組む（<a href="../functions/nonint.html"><code>nonint.jl</code></a> 由来）。</li>
+        <li><code>hamiltonian_from_hopping_df(hopping_df, Norb, kpath_data.k_cart)</code> — (c) で取っておいた DataFrame を使い、<b>k-path 上の <code>H(k)</code></b> を構築（<a href="../functions/nonint.html"><code>hamiltonian_from_hopping_df</code></a>）。<code>diagonalize_Hk(Hk)</code> で <code>Hermitian</code> 対角化し、バンド <code>kpath_bandE</code> と固有ベクトル <code>kpath_unitary</code> を得る（<a href="../functions/nonint.html"><code>diagonalize_Hk</code></a>）。</li>
+        <li><code>band_table</code> — <code>Nk×(5+Norb)</code> の表。列は <code>idx, kx_frac, ky_frac, kz_frac, kdist, band1..bandNorb</code>。<code>mkpath("Noint")</code> でディレクトリを作り、<code>Noint/band_kpath.dat</code> に <b>目視・作図用テキスト</b>として書き出す。</li>
+        <li><code>-&gt; skip k-path band.</code> — <code>KPOINTS</code> が見つからないときのメッセージ。エラーではなく、この段だけ飛ばして先へ進む。</li>
+      </ul>
+
+      <h4>(f) simulation.h5 保存</h4>
+      <div class="code-wrap">
+        <div class="code-head">1_setup.jl · run_setup（simulation.h5 保存, 抜粋）</div>
+<pre>h5open(SIM_FILENAME, "w") do file
+    g_params = create_group(file, "params")
+    for (k, v) in params
+        v === nothing &amp;&amp; continue
+        g_params[k] = v
+    end
+    g_params["Norb"] = Norb
+    g_params["Nfilling"] = Nfilling
+
+    g_non = create_group(file, "nonint")
+
+    g_ham = create_group(g_non, "hamiltonian")
+    g_ham["ENERGY"] = ENERGY
+    g_ham["Nrvec"] = Nrvec
+
+    g_diag = create_group(g_non, "diag")
+    g_diag["ENERGY_diag"] = ENERGY_diag
+    g_diag["UNITARY"] = UNITARY
+    attributes(g_diag)["gauge_fixed"] = true
+
+    g_chem = create_group(g_non, "chem")
+    g_chem["mu0"] = mu0
+    g_chem["Ne_band"] = Ne_band
+    g_chem["Ne_orb"] = Ne_orb
+
+    g_lat = create_group(g_non, "lattice")
+    g_lat["lattice_type"] = String(params["lattice_type"])
+    g_lat["lattice_a"] = Float64(params["lattice_a"])
+    g_lat["a1"] = a1; g_lat["a2"] = a2
+    g_lat["b1"] = b1; g_lat["b2"] = b2
+
+    if has_kpath
+        g_kp = create_group(g_non, "kpath")
+        g_kp["k_frac"] = k_frac_mat       # Nk×3 に整形して格納
+        g_kp["k_cart"] = kpath_data.k_cart
+        g_kp["kdist"]  = kpath_data.kdist
+        g_kp["tick_pos"]   = kpath_data.tick_pos
+        g_kp["tick_label"] = kpath_data.tick_label
+        g_kp["band_energy"] = kpath_bandE
+        g_kp["unitary"]     = kpath_unitary
+        # ... k_cart_metric なども同様に保存
+    end
+end</pre>
+      </div>
+      <ul class="read-list">
+        <li><code>h5open(SIM_FILENAME, "w") do file ... end</code> — <code>simulation.h5</code> を新規書き込みで開き、<code>do</code> ブロックを抜けると自動でクローズする。以降は<b>グループ階層</b>にデータを詰めていく。</li>
+        <li><code>params</code> グループ — <code>for (k,v) in params</code> で設定 Dict を丸ごと保存。<code>v === nothing &amp;&amp; continue</code> は「値が <code>nothing</code> の項目は書かずに飛ばす」ガード（HDF5 に <code>nothing</code> を書けないため）。加えて派生量 <code>Norb</code> / <code>Nfilling</code> も記録。</li>
+        <li><code>nonint/hamiltonian</code> — 格子 <code>H(k)</code>（<code>ENERGY</code>）と <code>Nrvec</code>。<code>nonint/diag</code> — 対角化結果 <code>ENERGY_diag</code> / <code>UNITARY</code>。<code>attributes(g_diag)["gauge_fixed"]=true</code> で<b>ゲージ固定済みの目印</b>を属性として残す。</li>
+        <li><code>nonint/chem</code> — 化学ポテンシャル <code>mu0</code> とバンド別・軌道別占有数 <code>Ne_band</code> / <code>Ne_orb</code>。後段はこの <code>mu0</code> を <code>μ</code> の初期値に使う。</li>
+        <li><code>nonint/lattice</code> — <code>lattice_type</code> / <code>lattice_a</code> と実空間・逆格子ベクトル <code>a1,a2,b1,b2</code>。BZ 形状や作図に使う。</li>
+        <li><code>nonint/kpath</code>（<code>has_kpath</code> のときだけ）— k-path の分数/デカルト座標・累積距離 <code>kdist</code>・目盛（<code>tick_pos</code> / <code>tick_label</code>）・バンド <code>band_energy</code>・固有ベクトル <code>unitary</code>。バンド図をそのまま再現できる一式。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>設計の勘所：</b> <code>run_setup</code> 自身は「数値を解く」コードをほとんど持たず、
+        <a href="../functions/nonint.html">Nonint</a>・<a href="../functions/lattice.html">Lattice</a> の関数を<b>正しい順序で呼び、結果を HDF5 に固める配線係</b>。
+        重い一体計算はここで一度だけ済ませ、以降の FLEX/Eliashberg は <code>simulation.h5</code> を読むだけで済む。
+      </div>
+
+      <div class="warn-box">
+        <b>前提：</b> <code>hop.dat</code> が <code>hopping_path</code> に存在し、その軌道ブロック数が <code>Norb²</code> と整合していること。
+        <code>Norb_each_site</code> を変えたら <code>hop.dat</code>（＝<code>gen_hop.py</code> の設定）も揃える必要がある。
+        <code>KPOINTS</code> は無くても動くが、その場合 <code>nonint/kpath</code> と <code>Noint/band_kpath.dat</code> は作られない。
+      </div>
+
+      <div class="related">
+        関連：
+        <a href="../functions/nonint.html"><code>load_Hamiltonian</code></a> ・
+        <a href="../functions/nonint.html"><code>diagonalize_Hamiltonian</code></a> ・
+        <a href="../functions/nonint.html"><code>fix_unitary_gauge!</code></a> ・
+        <a href="../functions/nonint.html"><code>hamiltonian_from_hopping_df</code></a> ・
+        <a href="../functions/nonint.html"><code>diagonalize_Hk</code></a> ／
+        <a href="../functions/nonint.html"><code>calc_mu_band</code></a> ・
+        <a href="../functions/nonint.html"><code>get_Ne_no_interaction</code></a> ・
+        <a href="../functions/nonint.html"><code>read_kpath_kpoints</code></a> ・
+        <a href="../functions/nonint.html"><code>build_kpath</code></a>（<code>nonint.jl</code> 由来）／
+        <a href="../functions/lattice.html"><code>define_lattice_vectors</code></a> ・
+        <a href="../functions/lattice.html"><code>reciprocal_vectors_2d</code></a>（<code>lattice.jl</code>）
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <b>次のステップ：</b> ここで書き出した <code>simulation.h5</code> を読んで FLEX を回すのが
+    <code>2_run_FLEX.jl</code>。<code>params</code>（⑤ の相互作用設定）と <code>nonint</code>（<code>H(k)</code>・<code>ENERGY_diag</code>・<code>mu0</code>）を
+    土台に、自己エネルギー <code>Σ</code>・感受率 <code>χ</code> を自己無撞着に求める。コアの解説は
+    <a href="../functions/flex.html">FLEX</a> を参照。
+  </div>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ — Setup</p>
+</footer>
+
+<script>
+  document.querySelectorAll('.fn-row').forEach(function (row) {
+    row.addEventListener('click', function () {
+      row.classList.toggle('open');
+    });
+  });
+</script>
+
+</body>
+</html>

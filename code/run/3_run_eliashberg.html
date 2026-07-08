@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eliashberg 実行 — 線形化ギャップ | コード解説</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      background-color: #fcfbfa; color: #2c2a29;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      line-height: 1.9; -webkit-font-smoothing: antialiased;
+    }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 820px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 0.5px; }
+    main { max-width: 820px; margin: 0 auto; padding: 48px 24px 100px; }
+    h2 {
+      font-size: 14pt; font-weight: 600; color: #2c2a29;
+      margin: 46px 0 8px; letter-spacing: 0.4px;
+      border-left: 3px solid #4a69b5; padding-left: 14px;
+    }
+    h2 .file-kind { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8.5pt; color: #96938f; font-weight: 500; letter-spacing: 0.5px; margin-left: 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .lead { font-size: 10.5pt; color: #4a4845; margin: 4px 0 24px; }
+    code { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 16px 18px; border-radius: 4px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9pt; overflow-x: auto; margin: 16px 0; line-height: 1.7; }
+    .note { background: #eef1f9; border-left: 3px solid #4a69b5; padding: 14px 18px; margin: 22px 0; font-size: 10pt; color: #2c2a29; border-radius: 0 4px 4px 0; }
+    footer { max-width: 820px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+
+    /* ── file-level import banner ─────────────── */
+    .imports { margin: 14px 0 30px; border: 1px solid #e3e0da; border-radius: 6px; overflow: hidden; }
+    .imports .code-head { background: #edeae4; padding: 6px 14px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .imports pre { margin: 0; border-radius: 0; background: #fbfaf8; }
+
+    /* ── function list ────────────────────────── */
+    .fn-list { margin: 6px 0 8px; border-top: 1px solid #e6e4e0; }
+    .fn-row {
+      cursor: pointer; padding: 15px 8px 15px 6px;
+      border-bottom: 1px solid #ece9e4; transition: background 0.15s;
+      display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    }
+    .fn-row:hover { background: #f5f3ef; }
+    .fn-name {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 11pt; font-weight: 600; color: #1a3a6a; letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    .fn-ind { font-size: 7pt; color: #b0a898; margin-left: 5px; transition: transform 0.2s ease; display: inline-block; vertical-align: middle; }
+    .fn-row.open .fn-ind { transform: rotate(90deg); }
+    .fn-sub { font-size: 9.5pt; color: #73706c; flex: 1; min-width: 220px; }
+
+    /* ── detail panel ─────────────────────────── */
+    .fn-detail {
+      display: none; background: #f9f7f4; border-left: 3px solid #4a69b5;
+      padding: 22px 26px; margin: 0 0 2px; animation: detailIn 0.18s ease-out;
+    }
+    .fn-row.open + .fn-detail { display: block; }
+    @keyframes detailIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .fn-detail h4 { font-size: 10pt; font-weight: 600; color: #2c2a29; margin: 20px 0 8px; letter-spacing: 0.3px; }
+    .fn-detail h4:first-of-type { margin-top: 0; }
+    .fn-detail p { font-size: 10pt; margin: 0 0 10px; color: #3a3836; }
+    .syntax-box {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 9pt; background: #edeae4; border-radius: 3px;
+      padding: 10px 14px; margin: 0 0 4px; color: #2c2a29; overflow-x: auto;
+    }
+    .code-wrap { margin: 12px 0 4px; border: 1px solid #e3e0da; border-radius: 5px; overflow: hidden; }
+    .code-head { background: #edeae4; padding: 5px 13px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .code-wrap pre { margin: 0; border-radius: 0; background: #fbfaf8; font-size: 8.7pt; line-height: 1.68; padding: 13px 15px; }
+
+    /* ── "読み方" mapping list ────────────────── */
+    .read-list { list-style: none; padding: 0; margin: 6px 0 4px; }
+    .read-list > li { position: relative; padding: 7px 0 7px 18px; font-size: 9.8pt; color: #3a3836; border-bottom: 1px dashed #e7e3dc; }
+    .read-list > li:last-child { border-bottom: none; }
+    .read-list > li::before { content: "▸"; position: absolute; left: 0; top: 8px; color: #b0a898; font-size: 8pt; }
+    .read-list code { font-size: 8.9pt; color: #1a3a6a; background: #edeae4; }
+    .read-list b { color: #253a6a; }
+
+    .warn-box {
+      background: #fef9ee; border-left: 3px solid #d4a017;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #5a4a1a;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .tip-box {
+      background: #eef7f0; border-left: 3px solid #4a8a5a;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #234a30;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .related { margin-top: 16px; padding-top: 10px; border-top: 1px solid #e3ded6; font-size: 9pt; color: #73706c; }
+    .related code { font-size: 8.9pt; color: #1a3a6a; }
+
+    /* ── SCF ループ図 ─────────────────────────── */
+    .flow { margin: 10px 0 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 9pt; }
+    .flow .step { font-family: "SFMono-Regular","Consolas","Menlo",monospace; background: #edeae4; border: 1px solid #e0dcd3; border-radius: 4px; padding: 5px 10px; color: #1a3a6a; }
+    .flow .arrow { color: #b0a898; font-size: 10pt; }
+  </style>
+  <link rel="stylesheet" href="../../site.css">
+  <script defer src="../../site.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../../index.html">研究メモ</a> &rsaquo; コード解説 &rsaquo; 実行スクリプト &rsaquo; Eliashberg</div>
+  <h1 class="font-serif">3. Eliashberg — 線形化ギャップ方程式</h1>
+  <p class="font-serif">— __FLEX_CACHE__ の G・χ から線形化 Eliashberg を解き、固有値 λ とギャップ φ を得る &nbsp;|&nbsp; 関数名をクリックで詳細 —</p>
+</header>
+
+<main>
+
+  <p class="lead">
+    線形化 Eliashberg 方程式を解いて <code>λ</code>（<b>超伝導不安定性</b>）とギャップ <code>φ</code> を得るドライバ。
+    <code>λ</code> は Eliashberg 作用素の<b>最大固有値</b>で、<code>λ=1</code> が超伝導転移点、<code>λ</code> が大きいほど不安定（<code>T<sub>c</sub></code> が高い）。
+    入力の <code>G</code>, <code>χ<sub>0</sub></code> は <a href="2_run_FLEX.html">2_run_FLEX.jl</a> がメモリに置いた
+    <code>__FLEX_CACHE__</code> から<b>受け取る</b>ため、<b>同一 Julia セッションで連結実行</b>することが前提（別プロセスでは動かない）。
+    数値ロジック本体は <a href="../functions/eliashberg.html"><code>eliash_lib.jl</code></a> 側にあり、このファイルは<b>入出力と条件分岐の司令塔</b>。
+  </p>
+
+  <div class="note">
+    <b>使い方：</b> 同一セッションで <code>include("2_run_FLEX.jl"); include("3_run_eliashberg.jl")</code>
+    （または <code>compute.jl</code> を実行）。<br>
+    <b>入力：</b> <code>__FLEX_CACHE__</code> の <code>G</code>・<code>chi_0</code>・<code>UNITARY_corrected</code>（大配列はメモリ経由）＋
+    <code>simulation.h5</code> の <code>params</code>（温度・<code>U</code>・<code>psym</code>/<code>ssym</code>・ソルバ設定などのメタデータ）。<br>
+    <b>出力：</b> <code>simulation.h5</code> の
+    <code>eliashberg_result/{channel}/{lambda, phi_iwpm1_mode1to2}</code>（<b>小さい φ スライスのみ</b>）＋
+    メモリの <code>__ELIASH_CACHE__</code>（<b>フル φ</b>）。<br>
+    <b>依存：</b> <code>include("functions/eliash_lib.jl")</code>。
+  </div>
+
+  <div class="flow">
+    <span class="step">__FLEX_CACHE__ (G,χ<sub>0</sub>)</span><span class="arrow">&rarr;</span>
+    <span class="step">初期Δ（バンド基底→軌道基底）</span><span class="arrow">&rarr;</span>
+    <span class="step">射影（singlet/triplet）</span><span class="arrow">&rarr;</span>
+    <span class="step">Eliashberg_pipeline!</span><span class="arrow">&rarr;</span>
+    <span class="step">λ, φ</span><span class="arrow">&rarr;</span>
+    <span class="step">__ELIASH_CACHE__ + eliashberg_result</span>
+  </div>
+
+  <h2 class="font-serif">3_run_eliashberg.jl<span class="file-kind">Julia</span></h2>
+  <p class="lead">
+    <code>__FLEX_CACHE__</code> の <code>G</code>・<code>χ<sub>0</sub></code> から初期ギャップ <code>Δ<sub>0</sub></code> を作り、対称性を射影して
+    <code>Eliashberg_pipeline!</code> に投げ、<code>λ</code>・<code>φ</code> を回収して保存するまでの一連。冒頭の依存と定数は次のとおり。
+  </p>
+
+  <div class="imports">
+    <div class="code-head">3_run_eliashberg.jl — 冒頭</div>
+<pre>using HDF5
+using Printf
+using LinearAlgebra
+
+include("functions/eliash_lib.jl")
+
+const SIM_FILENAME = "simulation.h5"
+const GROUP_NAME = "eliashberg_result"
+const MIN_SAVE_NMODES = 2
+const MIN_PHI_KEY = "phi_iwpm1_mode1to2"   # iw 順: [+iw1, -iw1]</pre>
+  </div>
+
+  <div class="fn-list">
+
+    <!-- ============ projection_singlet! / projection_triplet! ============ -->
+    <div class="fn-row">
+      <span class="fn-name">projection_singlet! / projection_triplet!<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">ギャップ対称性の射影 <code>Δ(iω,k)=±Δ<sup>T</sup>(-iω,-k)</code>（singlet は対称化 +、triplet は反対称化 −）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">projection_singlet!(DELTA)  /  projection_triplet!(DELTA)   # 破壊的：DELTA を上書き</div>
+
+      <h4>概要</h4>
+      <p>
+        クーパー対のギャップは、対の交換対称性から
+        <code>Δ(iω,k) = +Δ<sup>T</sup>(-iω,-k)</code>（<b>singlet</b>）または
+        <code>Δ(iω,k) = -Δ<sup>T</sup>(-iω,-k)</code>（<b>triplet</b>）を満たさなければならない。
+        この2関数は初期ギャップ（および反復中のギャップ）をその対称セクターへ<b>射影</b>する。
+        中身は「<code>iω</code>・<code>k</code> を反転し軌道 <code>(i,j)</code> を入れ替えた鏡像 <code>rev</code>」を作り、
+        singlet は<b>加算</b>、triplet は<b>減算</b>して <code>0.5</code> 倍するだけ。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">3_run_eliashberg.jl · projection_singlet! / projection_triplet!</div>
+<pre># ギャップ対称性の射影:  Δ(iω,k) = ± Δ^T(-iω,-k)
+function projection_singlet!(DELTA)
+    rev = similar(DELTA)
+    permutedims!(rev, DELTA[end:-1:1, [1; end:-1:2], [1; end:-1:2], [1; end:-1:2], :, :], (1, 2, 3, 4, 6, 5))
+    DELTA .+= rev
+    DELTA .*= 0.5
+    return nothing
+end
+function projection_triplet!(DELTA)
+    rev = similar(DELTA)
+    permutedims!(rev, DELTA[end:-1:1, [1; end:-1:2], [1; end:-1:2], [1; end:-1:2], :, :], (1, 2, 3, 4, 6, 5))
+    DELTA .-= rev   # ← singlet との唯一の差：加算(+) ではなく減算(−)
+    DELTA .*= 0.5
+    return nothing
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>DELTA</code> は 6 次元 <code>[iω, kx, ky, kz, i, j]</code>（周波数・波数・軌道ペア）。<code>rev = similar(DELTA)</code> は同形の出力バッファ。</li>
+        <li><code>DELTA[end:-1:1, …]</code> — 第 1 軸（<code>iω</code>）を反転して <code>iω &rarr; -iω</code>。</li>
+        <li><code>[1; end:-1:2]</code> — 波数 3 軸それぞれの反転（<b>先頭 index 1 は固定</b>、残りを逆順）。<code>fftfreq</code> 並びでの <code>k &rarr; -k</code> に対応。</li>
+        <li>置換 <code>(1, 2, 3, 4, 6, 5)</code> — 最後の 2 軸（軌道 <code>i,j</code>）を入れ替え＝<b>軌道空間の転置</b>。合わせて <code>rev = Δ<sup>T</sup>(-iω,-k)</code>。</li>
+        <li><code>DELTA .+= rev; DELTA .*= 0.5</code> — <code>(Δ + Δ<sup>T</sup>(-iω,-k))/2</code> で singlet 成分だけ残す<b>対称化射影</b>。triplet は <code>.-=</code> で <code>(Δ − Δ<sup>T</sup>(-iω,-k))/2</code> の<b>反対称化</b>。</li>
+        <li><code>permutedims!</code>（末尾 <code>!</code>）は <code>rev</code> にその場書き込み。関数末尾 <code>!</code> は <code>DELTA</code> を破壊的に更新する慣習。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>物理：</b> フェルミオンの反交換から、対の波動関数（＝異常ギャップ <code>Δ</code>）はスピン・軌道・空間・時間の全交換で符号 <code>-1</code>。
+        スピン singlet（反対称）なら残り（軌道・<code>k</code>・<code>iω</code>）は<b>偶</b>、triplet（対称）なら<b>奇</b>。この射影は初期ゲスから
+        「許されない対称性の混入」を落とし、目的セクターの固有ベクトルへ収束させるためのもの。
+      </div>
+
+      <div class="related">関連：<a href="../functions/eliashberg.html"><code>Eliashberg_pipeline!</code></a>（射影関数を <code>projection_func</code> として受け反復中も適用）／ <code>projection_none!</code>（射影しない版）</div>
+    </div>
+
+    <!-- ============ projection_none! ============ -->
+    <div class="fn-row">
+      <span class="fn-name">projection_none!<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">何もしない射影（<code>ssym=2</code>・射影なしで生の固有値を見るとき用）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">projection_none!(DELTA) = nothing</div>
+
+      <h4>概要</h4>
+      <p>
+        対称性の射影を<b>一切かけない</b>ダミー。<code>ssym=2</code>（"none"）のとき、
+        singlet/triplet のどちらにも押し込めず、Eliashberg 作用素そのものの最大固有値を素直に見たい場合に使う。
+        <code>Eliashberg_pipeline!</code> に <code>projection_func</code> として渡され、呼ばれても即 <code>nothing</code> を返す。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">3_run_eliashberg.jl · projection_none!</div>
+<pre>projection_none!(DELTA) = nothing</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li>1 行定義。引数を受け取るが<b>触らず</b> <code>nothing</code> を返すだけ。</li>
+        <li>射影を挟むかどうかを <code>if</code> で分岐させず、<b>「常に射影関数を呼ぶ」</b>コード構造を保ちながら「射影なし」を表現するためのイディオム。</li>
+      </ul>
+
+      <div class="related">関連：<code>projection_singlet!</code> / <code>projection_triplet!</code>（実体のある射影）</div>
+    </div>
+
+    <!-- ============ _ssym_label ============ -->
+    <div class="fn-row">
+      <span class="fn-name">_ssym_label<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>ssym</code> 整数コードを人間向けラベル（singlet / triplet / none / both）に変換</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">_ssym_label(ssym) &rarr; "singlet" | "triplet" | "none" | "both" | "unknown"</div>
+
+      <h4>概要</h4>
+      <p>
+        <code>params["ssym"]</code> の整数コードを、ログ表示や HDF5 属性に書く<b>文字列ラベル</b>へ写す 1 行関数。
+        <code>1=singlet</code>・<code>0=triplet</code>・<code>2=none</code>・<code>3=both</code>、それ以外は <code>"unknown"</code>。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">3_run_eliashberg.jl · _ssym_label</div>
+<pre>_ssym_label(ssym) = ssym == 1 ? "singlet" : ssym == 0 ? "triplet" : ssym == 2 ? "none" : ssym == 3 ? "both" : "unknown"</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li>三項演算子を数珠つなぎにした分岐。上から <code>1&rarr;singlet</code>, <code>0&rarr;triplet</code>, <code>2&rarr;none</code>, <code>3&rarr;both</code>。</li>
+        <li>どれにも当たらなければ <code>"unknown"</code>。設定ミスを表示上で拾える<b>フェイルセーフ</b>。</li>
+        <li>チャネル選択の <code>if</code> 本体（後述 <code>run_eliashberg</code>）とは独立で、こちらは<b>表示・保存用の名札</b>専用。</li>
+      </ul>
+
+      <div class="related">関連：<code>run_eliashberg</code> のチャネル選択・<code>log_section("config")</code> 表示・HDF5 属性 <code>ssym_label</code></div>
+    </div>
+
+    <!-- ============ _extract_phi_iwpm1 ============ -->
+    <div class="fn-row">
+      <span class="fn-name">_extract_phi_iwpm1<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">フル <code>φ</code> から <code>±iω<sub>1</sub></code>・mode 1..2 の<b>最小スライス</b>だけ抜く（プロット・保存用）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">_extract_phi_iwpm1(phi::Array{ComplexF64,7}; nmodes=MIN_SAVE_NMODES) &rarr; Array{ComplexF64,7}（第1軸サイズ 2）</div>
+
+      <h4>概要</h4>
+      <p>
+        フルの <code>φ</code> は 7 次元 <code>[iω, kx, ky, kz, i, j, mode]</code> で大きい。HDF5 には全部を書かず、
+        <b>最低周波数 <code>+iω<sub>1</sub></code>・<code>-iω<sub>1</sub></code> の 2 枚</b>と <b>mode 1..<code>MIN_SAVE_NMODES</code>（=2）</b>だけを
+        取り出した軽量スライスを作る。<code>6_plot_eliashberg.jl</code> が描くギャップ構造にはこの <code>iω<sub>1</sub></code> 面で十分。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">3_run_eliashberg.jl · _extract_phi_iwpm1</div>
+<pre># ±iw1, mode1..MIN_SAVE_NMODES の最小 φ スライス（プロット用）
+function _extract_phi_iwpm1(phi::Array{ComplexF64,7}; nmodes::Int=MIN_SAVE_NMODES)
+    iw_pos, iw_neg = 1, size(phi, 1)
+    mmax = min(nmodes, size(phi, 7))
+    out = Array{ComplexF64}(undef, 2, size(phi, 2), size(phi, 3), size(phi, 4), size(phi, 5), size(phi, 6), mmax)
+    @views out[1, :, :, :, :, :, 1:mmax] .= phi[iw_pos, :, :, :, :, :, 1:mmax]
+    @views out[2, :, :, :, :, :, 1:mmax] .= phi[iw_neg, :, :, :, :, :, 1:mmax]
+    return out
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>iw_pos, iw_neg = 1, size(phi, 1)</code> — <code>+iω<sub>1</sub></code> は周波数軸の<b>先頭</b>、<code>-iω<sub>1</sub></code> は<b>末尾</b>（<code>fftfreq</code> 並びの両端）。</li>
+        <li><code>mmax = min(nmodes, size(phi, 7))</code> — 保存する mode 数を <code>MIN_SAVE_NMODES</code> で頭打ち（固有ベクトルが 1 本しか無い場合も安全）。</li>
+        <li><code>out</code> の第 1 軸サイズは <b>2</b> — <code>[+iω<sub>1</sub>, -iω<sub>1</sub>]</code> の 2 面だけを積む。定数 <code>MIN_PHI_KEY</code> のコメント「<code>iw 順: [+iw1, -iw1]</code>」と一致。</li>
+        <li><code>@views … .= phi[…]</code> — スライス右辺の一時配列生成を抑えて直接コピー。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>設計意図：</b> フル <code>φ</code> は周波数×<code>k</code>×軌道×mode で巨大なので HDF5 に丸ごと置くとファイルが膨れる。
+        <b>可視化に要る最小面だけディスクへ、フルはメモリ（<code>__ELIASH_CACHE__</code>）へ</b>と役割分担する。
+      </div>
+
+      <div class="related">関連：<code>MIN_PHI_KEY</code> / <code>MIN_SAVE_NMODES</code>（保存キーと mode 数）／ <code>6_plot_eliashberg.jl</code>（このスライスを描く）</div>
+    </div>
+
+    <!-- ============ _get_flex_cache ============ -->
+    <div class="fn-row">
+      <span class="fn-name">_get_flex_cache<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>Main.__FLEX_CACHE__</code> の存在・中身を検査し、無ければ「先に 2_run_FLEX.jl を同一セッションで」と即エラー</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">_get_flex_cache() &rarr; Main.__FLEX_CACHE__（<code>Dict</code>）／ 不正なら <code>error(...)</code></div>
+
+      <h4>概要</h4>
+      <p>
+        入力の大配列 <code>G</code>・<code>χ<sub>0</sub></code> は 2_run_FLEX.jl がグローバル <code>__FLEX_CACHE__</code> に置いたものを使う。
+        この関数はそれが<b>定義済みで・<code>Dict</code> で・<code>:G</code> と <code>:chi_0</code> を持つ</b>ことを確認し、
+        欠けていれば「同一 Julia セッションで先に 2_run_FLEX.jl を回せ」という<b>親切なエラー</b>で止める。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">3_run_eliashberg.jl · _get_flex_cache</div>
+<pre>function _get_flex_cache()
+    ok = isdefined(Main, :__FLEX_CACHE__) &amp;&amp; (Main.__FLEX_CACHE__ isa AbstractDict) &amp;&amp;
+         haskey(Main.__FLEX_CACHE__, :G) &amp;&amp; haskey(Main.__FLEX_CACHE__, :chi_0)
+    ok || error("__FLEX_CACHE__ not found. Run 2_run_FLEX.jl in the SAME Julia session first " *
+                "(e.g. include(\"2_run_FLEX.jl\"); include(\"3_run_eliashberg.jl\"), or use compute.jl).")
+    return Main.__FLEX_CACHE__
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>isdefined(Main, :__FLEX_CACHE__)</code> — グローバルに<b>存在するか</b>。別プロセス実行だと未定義になり、ここで弾かれる。</li>
+        <li><code>… isa AbstractDict &amp;&amp; haskey(…, :G) &amp;&amp; haskey(…, :chi_0)</code> — 型が <code>Dict</code> で、必要キー <code>:G</code>・<code>:chi_0</code> が揃うかを <code>&amp;&amp;</code> で連結チェック。</li>
+        <li><code>ok || error(...)</code> — どれか欠ければ即エラー。メッセージが<b>正しい連結実行の仕方</b>を提示（<code>include</code> 2 連 or <code>compute.jl</code>）。</li>
+        <li>成功時は <code>Main.__FLEX_CACHE__</code> をそのまま返す（コピーしない＝大配列は参照渡し）。</li>
+      </ul>
+
+      <div class="warn-box">
+        <b>連結実行が前提：</b> <code>__FLEX_CACHE__</code> は<b>メモリ上のグローバル</b>で、ディスクには無い。
+        2_run_FLEX.jl を回した Julia を終了したり、別プロセスで 3_run_eliashberg.jl だけ起動すると必ずここで失敗する。
+        必ず<b>同一セッション</b>で <code>include</code> を続けること。
+      </div>
+
+      <div class="related">関連：<a href="2_run_FLEX.html">2_run_FLEX.jl</a>（<code>__FLEX_CACHE__</code> を作る側）</div>
+    </div>
+
+    <!-- ============ run_eliashberg ============ -->
+    <div class="fn-row">
+      <span class="fn-name">run_eliashberg<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><b>メイン</b>：入力回収 → パラメータ展開 → 初期Δ・射影 → <code>Eliashberg_pipeline!</code> → <code>λ,φ</code> 表示・保存</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">run_eliashberg()   # __FLEX_CACHE__ と simulation.h5 を読み、λ・φ を計算して保存</div>
+
+      <h4>概要</h4>
+      <p>
+        このファイルの心臓部。<code>__FLEX_CACHE__</code>（大配列）と <code>simulation.h5</code>（<code>params</code>）を読み、
+        設定に応じて初期ギャップを作って射影し、<a href="../functions/eliashberg.html"><code>Eliashberg_pipeline!</code></a> で
+        各チャネルの <code>λ</code>・<code>φ</code> を求める。結果はメモリ（フル <code>φ</code>）と HDF5（<code>λ</code>＋最小 <code>φ</code>）に振り分けて保存する。
+        以下、(1)〜(6) の段階で読み解く。
+      </p>
+
+      <h4>(1) 入力：<code>params</code> は HDF5、大配列は <code>__FLEX_CACHE__</code></h4>
+      <div class="code-wrap">
+        <div class="code-head">3_run_eliashberg.jl · run_eliashberg（入力）</div>
+<pre>function run_eliashberg()
+    log_banner("ELIASHBERG (linearized)")
+
+    # --- 入力: params は HDF5、大配列は __FLEX_CACHE__（メモリ連結）---
+    cache = _get_flex_cache()
+    params = Dict{String,Any}()
+    h5open(SIM_FILENAME, "r") do file
+        for k in keys(file["params"])
+            params[String(k)] = read(file["params"][k])
+        end
+    end
+    G = cache[:G]
+    CHI0 = cache[:chi_0]
+    UNITARY = get(cache, :UNITARY_corrected, nothing)
+    println("Using __FLEX_CACHE__ (G, chi_0" * (UNITARY === nothing ? "" : ", UNITARY_corrected") * ")")</pre>
+      </div>
+      <ul class="read-list">
+        <li><code>cache = _get_flex_cache()</code> — 先に <code>__FLEX_CACHE__</code> の健全性を確認して取得。</li>
+        <li><code>h5open(SIM_FILENAME, "r") do file … end</code> — <code>simulation.h5</code> の <code>params</code> グループを全キー読み <code>Dict</code> 化。<b>小さいメタデータだけ</b>ディスク経由。</li>
+        <li><code>G = cache[:G]</code> / <code>CHI0 = cache[:chi_0]</code> — <b>大配列はメモリから直接参照</b>。ディスクを介さない。</li>
+        <li><code>UNITARY = get(cache, :UNITARY_corrected, nothing)</code> — バンド&harr;軌道変換用のユニタリ。無ければ <code>nothing</code>（後段で分岐）。</li>
+      </ul>
+
+      <h4>(2) パラメータ展開：<code>psym</code>/<code>ssym</code>・ソルバ・初期対称性</h4>
+      <div class="code-wrap">
+        <div class="code-head">3_run_eliashberg.jl · run_eliashberg（パラメータ）</div>
+<pre>    temp = Float64(params["temperature"])
+    U, Uprime = Float64(params["U"]), Float64(params["Uprime"])
+    Jhund, Jpair = Float64(params["Jhund"]), Float64(params["Jpair"])
+    Norb_each = Int.(params["Norb_each_site"])
+    psym = Int(get(params, "psym", 0))
+    ssym = Int(get(params, "ssym", 1))
+    solver = String(get(params, "eliash_solver", "Lanczos"))
+    howmany = Int(get(params, "eliash_howmany", 1))
+    Lanczos_ncv = Int(get(params, "eliash_Lanczos_ncv", 20))
+    Lanczos_maxiter = Int(get(params, "eliash_Lanczos_maxiter", 300))
+    Lanczos_which = _parse_Lanczos_which(get(params, "eliash_Lanczos_which", "LR"))
+    Power_maxiter = Int(get(params, "eliash_Power_maxiter", 1000))
+    tol = Float64(get(params, "eliash_tol", 1e-5))
+    init_sym_key = String(get(params, "eliash_init_symmetry", "from_psym"))
+    init_seed = Int(get(params, "eliash_init_seed", 42))
+    init_symmetry = init_sym_key == "from_psym" ? _psym_to_init_symmetry(psym) : init_sym_key
+    if solver == "PowerMethod" &amp;&amp; howmany != 1
+        @warn "PowerMethod requires howmany=1; overriding" howmany
+        howmany = 1
+    end</pre>
+      </div>
+      <ul class="read-list">
+        <li><code>psym</code>（空間パリティ）と <code>ssym</code>（スピン対称セクター）が計算の 2 大スイッチ。<code>get(params, …, 既定)</code> で欠損時は既定値。</li>
+        <li><code>solver</code> — <code>"Lanczos"</code>（複数固有値・<code>howmany</code> 本）か <code>"PowerMethod"</code>（べき乗法・最大 1 本）。</li>
+        <li><code>Lanczos_ncv/maxiter/which</code> — Krylov 部分空間の大きさ・反復上限・どの端の固有値か（<code>which</code> は <a href="../functions/eliashberg.html"><code>_parse_Lanczos_which</code></a> で解釈、既定 <code>"LR"</code>＝実部最大）。</li>
+        <li><code>init_symmetry = …=="from_psym" ? _psym_to_init_symmetry(psym) : init_sym_key</code> — 初期Δの空間対称性を <code>psym</code> から <a href="../functions/eliashberg.html"><code>_psym_to_init_symmetry</code></a> で決める（明示指定があればそれを優先）。</li>
+        <li><code>if solver=="PowerMethod" &amp;&amp; howmany != 1</code> — べき乗法は最大固有値 1 本しか出せないため <code>howmany</code> を <b>1 に強制</b>して警告。</li>
+      </ul>
+
+      <h4>(3) 共通準備：FFT プラン・相互作用行列・マスク</h4>
+      <div class="code-wrap">
+        <div class="code-head">3_run_eliashberg.jl · run_eliashberg（共通準備）</div>
+<pre>    FFT_plan = plan_fft(zeros(ComplexF64, size(G)[1:4]), (1, 2, 3, 4))
+    U_spin, U_charge = get_interaction_matrices(U, Uprime, Jhund, Jpair, Tuple(Norb_each))
+    mask_inds, U_spin, U_charge = get_mask(U_spin, U_charge)
+
+    log_section("config")
+    println(@sprintf("solver=%s howmany=%d tol=%.1e  psym=%d(init=%s)  ssym=%d(%s)",
+        solver, howmany, tol, psym, init_symmetry, ssym, _ssym_label(ssym)))</pre>
+      </div>
+      <ul class="read-list">
+        <li><code>plan_fft(zeros(…, size(G)[1:4]), (1,2,3,4))</code> — <code>G</code> の先頭 4 軸（<code>iω,kx,ky,kz</code>）に対する FFT プランを一度だけ作り、パイプラインで使い回す。</li>
+        <li><code>get_interaction_matrices(...)</code> — <code>U,U',J,J'</code> と各サイト軌道数から<b>スピン/電荷相互作用行列</b> <code>U_spin, U_charge</code> を生成（<a href="../functions/interaction.html">interaction</a>）。</li>
+        <li><code>mask_inds, U_spin, U_charge = get_mask(...)</code> — 非ゼロの<b>有効軌道成分だけに絞る</b>複合添字 <code>mask_inds</code> と、縮約済み <code>U</code> 行列を得る（<a href="../functions/interaction.html">interaction</a>）。</li>
+        <li>最後に <code>_ssym_label</code> 込みで設定を 1 行ログ。</li>
+      </ul>
+
+      <h4>(4) 初期Δ生成とチャネル実行（ネスト関数）</h4>
+      <div class="code-wrap">
+        <div class="code-head">3_run_eliashberg.jl · _make_delta0 / _run_one（ネスト関数）</div>
+<pre>    # バンド基底で初期 Δ0 を作り、必要なら軌道基底へ変換
+    function _make_delta0(spin_symmetry)
+        D = copy(G)
+        init_DELTA_band!(D; symmetry=init_symmetry, spin_symmetry=spin_symmetry, seed=init_seed)
+        UNITARY === nothing || band2orb_anomalous!(D, UNITARY)
+        return D
+    end
+
+    function _run_one(spin_symmetry, projection_func)
+        log_section("solve ($spin_symmetry)")
+        CHI = copy(CHI0)
+        DELTA = _make_delta0(spin_symmetry)
+        projection_func(DELTA)
+        @time lambda, phi = Eliashberg_pipeline!(
+            DELTA, G, CHI, U_spin, U_charge, temp, FFT_plan;
+            mask_inds=mask_inds, spin_symmetry=spin_symmetry,
+            solver=solver, howmany=howmany, Lanczos_ncv=Lanczos_ncv,
+            Lanczos_maxiter=Lanczos_maxiter, Lanczos_which=Lanczos_which,
+            Power_maxiter=Power_maxiter, tol=tol, return_half=false, projection_func=projection_func)
+        return lambda, phi
+    end</pre>
+      </div>
+      <ul class="read-list">
+        <li><b><code>_make_delta0</code></b>：<code>D = copy(G)</code> を器に <a href="../functions/eliashberg.html"><code>init_DELTA_band!</code></a> で<b>バンド基底</b>の初期ギャップを対称性付きで生成し、<code>UNITARY === nothing || band2orb_anomalous!(D, UNITARY)</code> で<b>ユニタリがあれば軌道基底へ</b>変換（<a href="../functions/anomalous.html"><code>band2orb_anomalous!</code></a>）。</li>
+        <li><b><code>_run_one</code></b>：<code>CHI = copy(CHI0)</code> で <code>χ<sub>0</sub></code> を<b>複製</b>（パイプライン内で <code>V<sub>eff</sub></code> に上書きされるため、元を守る）。</li>
+        <li>初期Δに <code>projection_func(DELTA)</code> で対称性を射影 → <a href="../functions/eliashberg.html"><code>Eliashberg_pipeline!</code></a> に投げて <code>lambda, phi</code> を得る。<code>@time</code> で 1 チャネルの実行時間を計測。</li>
+        <li><code>return_half=false</code>＝フル <code>φ</code> を返す。<code>projection_func</code> は<b>反復の各ステップでも</b>対称性を保つためパイプラインへも渡す。</li>
+      </ul>
+
+      <h4>(5) チャネル選択：<code>ssym</code> で singlet / triplet / none / both</h4>
+      <div class="code-wrap">
+        <div class="code-head">3_run_eliashberg.jl · run_eliashberg（チャネル選択）</div>
+<pre>    results = Dict{String,Tuple{Any,Any}}()
+    if ssym == 3
+        println("ssym=3 -&gt; singlet と triplet の両方を計算")
+        results["singlet"] = _run_one("singlet", projection_singlet!)
+        results["triplet"] = _run_one("triplet", projection_triplet!)
+    elseif ssym == 0
+        results["triplet"] = _run_one("triplet", projection_triplet!)
+    elseif ssym == 2
+        results["none"] = _run_one("singlet", projection_none!)
+    else
+        results["singlet"] = _run_one("singlet", projection_singlet!)
+    end</pre>
+      </div>
+      <ul class="read-list">
+        <li><code>ssym == 3</code>（both）— singlet と triplet を<b>両方</b>計算し <code>results</code> に 2 チャネル格納。</li>
+        <li><code>ssym == 0</code> — triplet のみ。<code>ssym == 2</code>（none）— 射影なし（<code>projection_none!</code>）だが <code>spin_symmetry</code> は <code>"singlet"</code> 扱いで走らせる。</li>
+        <li><code>else</code>（既定 <code>ssym==1</code>）— singlet のみ。</li>
+        <li>各分岐は <code>_run_one(スピン対称性, 射影関数)</code> を呼ぶだけ。<b>ラベルがそのまま HDF5 の <code>{channel}</code> 名</b>になる。</li>
+      </ul>
+
+      <h4>(6) 結果表示と保存：メモリにフル φ、HDF5 に λ＋最小 φ</h4>
+      <div class="code-wrap">
+        <div class="code-head">3_run_eliashberg.jl · run_eliashberg（表示・保存）</div>
+<pre>    # --- 結果表示 ---
+    log_section("results")
+    for (label, (lambda, _)) in results
+        println("λ ($label):  " * join([@sprintf("mode%d=%.8f", i, real(x)) for (i, x) in enumerate(lambda)], "  "))
+    end
+
+    # --- 大 φ はメモリ(__ELIASH_CACHE__)、λ と最小 φ スライスのみ HDF5 ---
+    if !isdefined(@__MODULE__, :__ELIASH_CACHE__)
+        global __ELIASH_CACHE__ = Dict{Symbol,Any}()
+    end
+    for (label, (lambda, phi)) in results
+        __ELIASH_CACHE__[Symbol("lambda_$label")] = lambda
+        __ELIASH_CACHE__[Symbol("phi_$label")] = phi
+    end
+
+    log_section("save")
+    h5open(SIM_FILENAME, "r+") do file
+        haskey(file, GROUP_NAME) &amp;&amp; delete_object(file, GROUP_NAME)
+        g = create_group(file, GROUP_NAME)
+        attributes(g)["ssym"] = ssym
+        attributes(g)["ssym_label"] = _ssym_label(ssym)
+        attributes(g)["howmany"] = howmany
+        for (label, (lambda, phi)) in results
+            gch = create_group(g, label)
+            gch["lambda"] = lambda
+            gch[MIN_PHI_KEY] = _extract_phi_iwpm1(phi)
+            attributes(gch)["min_phi_iw_order"] = "+iw1,-iw1"
+        end
+    end
+    log_banner("ELIASHBERG DONE")
+end
+
+run_eliashberg()</pre>
+      </div>
+      <ul class="read-list">
+        <li><b>表示</b>：各チャネルの <code>λ</code> を <code>mode1=…  mode2=…</code> の形で 1 行に。実部 <code>real(x)</code> のみ表示。</li>
+        <li><b>メモリ保存</b>：<code>__ELIASH_CACHE__</code> が無ければ生成し、<code>lambda_&lt;label&gt;</code>・<code>phi_&lt;label&gt;</code> に<b>フル配列</b>を格納（後段の解析用）。</li>
+        <li><b>HDF5 保存</b>：<code>haskey(file, GROUP_NAME) &amp;&amp; delete_object(...)</code> で既存 <code>eliashberg_result</code> を消してから作り直す（再実行で上書き）。</li>
+        <li>グループ属性に <code>ssym</code>・<code>ssym_label</code>・<code>howmany</code>。各チャネルに <code>lambda</code> と <code>_extract_phi_iwpm1(phi)</code> の<b>最小 φ スライス</b>を <code>MIN_PHI_KEY</code> で書く。</li>
+        <li>末尾のトップレベル <code>run_eliashberg()</code> — <code>include</code> された瞬間に実行される（連結実行の締め）。</li>
+      </ul>
+
+      <div class="warn-box">
+        <b>大配列の置き場所：</b> フル <code>φ</code> は<b>メモリ（<code>__ELIASH_CACHE__</code>）だけ</b>、HDF5 には <code>λ</code> と <code>±iω<sub>1</sub></code> の
+        最小スライスしか残さない。フル <code>φ</code> が要る解析は<b>同一セッション</b>で <code>__ELIASH_CACHE__</code> から取ること。
+        セッションを閉じるとフル <code>φ</code> は失われる（再計算が必要）。
+      </div>
+
+      <div class="related">関連：<a href="../functions/eliashberg.html"><code>Eliashberg_pipeline!</code> / <code>init_DELTA_band!</code> / <code>_psym_to_init_symmetry</code> / <code>_parse_Lanczos_which</code></a>／ <a href="../functions/anomalous.html"><code>band2orb_anomalous!</code></a>／ <a href="../functions/interaction.html"><code>get_interaction_matrices</code> / <code>get_mask</code></a></div>
+    </div>
+
+  </div>
+
+  <div class="warn-box">
+    <b>連結実行が絶対条件：</b> <code>G</code>・<code>χ<sub>0</sub></code> はディスクではなく <code>__FLEX_CACHE__</code>（メモリ）から受け取る。
+    <code>include("2_run_FLEX.jl"); include("3_run_eliashberg.jl")</code> のように<b>同一 Julia セッション</b>で続けて呼ぶこと。
+    別プロセスで 3_run_eliashberg.jl 単体を起動すると <code>_get_flex_cache()</code> で必ず失敗する。
+  </div>
+
+  <div class="tip-box">
+    <b>λ の読み方：</b> <code>λ</code> は Eliashberg 作用素の最大固有値。<code>λ=1</code> で<b>超伝導転移</b>（このギャップ構造が自己無撞着に立つ点）、
+    <code>λ&lt;1</code> は常伝導、<code>λ</code> が大きいほど不安定＝<b><code>T<sub>c</sub></code> が高い</b>。温度を下げながら <code>λ(T)</code> が 1 を横切る温度が <code>T<sub>c</sub></code> の目安。
+    singlet/triplet の射影は、対の反対称性 <code>Δ(iω,k)=±Δ<sup>T</sup>(-iω,-k)</code> のうち<b>物理的に許される対称セクター</b>だけを拾うためのもの。
+  </div>
+
+  <div class="note">
+    <b>次のステップ：</b> 可視化は <code>6_plot_eliashberg.jl</code>。<code>simulation.h5</code> の
+    <code>eliashberg_result/{channel}/phi_iwpm1_mode1to2</code>（<code>±iω<sub>1</sub></code> の最小 φ スライス）と <code>lambda</code> を読み、
+    ギャップ構造や <code>λ</code> を描く。フル <code>φ</code> が要る解析は、同一セッションのうちに <code>__ELIASH_CACHE__</code> から取り出す。
+  </div>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ — Eliashberg</p>
+</footer>
+
+<script>
+  document.querySelectorAll('.fn-row').forEach(function (row) {
+    row.addEventListener('click', function () {
+      row.classList.toggle('open');
+    });
+  });
+</script>
+
+</body>
+</html>

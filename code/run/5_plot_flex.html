@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plot FLEX — 感受率マップ | コード解説</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      background-color: #fcfbfa; color: #2c2a29;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      line-height: 1.9; -webkit-font-smoothing: antialiased;
+    }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 820px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 0.5px; }
+    main { max-width: 820px; margin: 0 auto; padding: 48px 24px 100px; }
+    h2 {
+      font-size: 14pt; font-weight: 600; color: #2c2a29;
+      margin: 46px 0 8px; letter-spacing: 0.4px;
+      border-left: 3px solid #4a69b5; padding-left: 14px;
+    }
+    h2 .file-kind { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8.5pt; color: #96938f; font-weight: 500; letter-spacing: 0.5px; margin-left: 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .lead { font-size: 10.5pt; color: #4a4845; margin: 4px 0 24px; }
+    code { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 16px 18px; border-radius: 4px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9pt; overflow-x: auto; margin: 16px 0; line-height: 1.7; }
+    .note { background: #eef1f9; border-left: 3px solid #4a69b5; padding: 14px 18px; margin: 22px 0; font-size: 10pt; color: #2c2a29; border-radius: 0 4px 4px 0; }
+    footer { max-width: 820px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+
+    /* ── file-level import banner ─────────────── */
+    .imports { margin: 14px 0 30px; border: 1px solid #e3e0da; border-radius: 6px; overflow: hidden; }
+    .imports .code-head { background: #edeae4; padding: 6px 14px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .imports pre { margin: 0; border-radius: 0; background: #fbfaf8; }
+
+    /* ── function list ────────────────────────── */
+    .fn-list { margin: 6px 0 8px; border-top: 1px solid #e6e4e0; }
+    .fn-row {
+      cursor: pointer; padding: 15px 8px 15px 6px;
+      border-bottom: 1px solid #ece9e4; transition: background 0.15s;
+      display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    }
+    .fn-row:hover { background: #f5f3ef; }
+    .fn-name {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 11pt; font-weight: 600; color: #1a3a6a; letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    .fn-ind { font-size: 7pt; color: #b0a898; margin-left: 5px; transition: transform 0.2s ease; display: inline-block; vertical-align: middle; }
+    .fn-row.open .fn-ind { transform: rotate(90deg); }
+    .fn-sub { font-size: 9.5pt; color: #73706c; flex: 1; min-width: 220px; }
+
+    /* ── detail panel ─────────────────────────── */
+    .fn-detail {
+      display: none; background: #f9f7f4; border-left: 3px solid #4a69b5;
+      padding: 22px 26px; margin: 0 0 2px; animation: detailIn 0.18s ease-out;
+    }
+    .fn-row.open + .fn-detail { display: block; }
+    @keyframes detailIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .fn-detail h4 { font-size: 10pt; font-weight: 600; color: #2c2a29; margin: 20px 0 8px; letter-spacing: 0.3px; }
+    .fn-detail h4:first-of-type { margin-top: 0; }
+    .fn-detail p { font-size: 10pt; margin: 0 0 10px; color: #3a3836; }
+    .syntax-box {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 9pt; background: #edeae4; border-radius: 3px;
+      padding: 10px 14px; margin: 0 0 4px; color: #2c2a29; overflow-x: auto;
+    }
+    .code-wrap { margin: 12px 0 4px; border: 1px solid #e3e0da; border-radius: 5px; overflow: hidden; }
+    .code-head { background: #edeae4; padding: 5px 13px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .code-wrap pre { margin: 0; border-radius: 0; background: #fbfaf8; font-size: 8.7pt; line-height: 1.68; padding: 13px 15px; }
+
+    /* ── "読み方" mapping list ────────────────── */
+    .read-list { list-style: none; padding: 0; margin: 6px 0 4px; }
+    .read-list > li { position: relative; padding: 7px 0 7px 18px; font-size: 9.8pt; color: #3a3836; border-bottom: 1px dashed #e7e3dc; }
+    .read-list > li:last-child { border-bottom: none; }
+    .read-list > li::before { content: "▸"; position: absolute; left: 0; top: 8px; color: #b0a898; font-size: 8pt; }
+    .read-list code { font-size: 8.9pt; color: #1a3a6a; background: #edeae4; }
+    .read-list b { color: #253a6a; }
+
+    .warn-box {
+      background: #fef9ee; border-left: 3px solid #d4a017;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #5a4a1a;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .tip-box {
+      background: #eef7f0; border-left: 3px solid #4a8a5a;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #234a30;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .related { margin-top: 16px; padding-top: 10px; border-top: 1px solid #e3ded6; font-size: 9pt; color: #73706c; }
+    .related code { font-size: 8.9pt; color: #1a3a6a; }
+
+    /* ── SCF ループ図 ─────────────────────────── */
+    .flow { margin: 10px 0 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 9pt; }
+    .flow .step { font-family: "SFMono-Regular","Consolas","Menlo",monospace; background: #edeae4; border: 1px solid #e0dcd3; border-radius: 4px; padding: 5px 10px; color: #1a3a6a; }
+    .flow .arrow { color: #b0a898; font-size: 10pt; }
+  </style>
+  <link rel="stylesheet" href="../../site.css">
+  <script defer src="../../site.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../../index.html">研究メモ</a> &rsaquo; コード解説 &rsaquo; 実行スクリプト &rsaquo; Plot FLEX</div>
+  <h1 class="font-serif">5. Plot FLEX — 感受率マップ</h1>
+  <p class="font-serif">— χ0/χ_s/χ_c の静的(ν=0)感受率を対角化・軌道・バンド表示で BZ 充填マップに描く &nbsp;|&nbsp; 関数名をクリックで詳細 —</p>
+</header>
+
+<main>
+
+  <p class="lead">
+    <a href="../functions/flex.html">FLEX</a> の感受率を可視化する。<code>χ<sub>0</sub></code>・<code>χ<sub>s</sub></code>・<code>χ<sub>c</sub></code>
+    それぞれについて <code>Flex_results/&lt;name&gt;/</code> を作り、静的（<code>ν=0</code>）の<b>軌道密度-密度感受率行列</b>
+    <code>M<sub>ij</sub>(q) = χ<sub>(i,i),(j,j)</sub>(q)</code> を、<b>対角化</b>（主固有値・回転不変）マップ／<b>軌道表示</b> Re・abs／
+    <b>バンド表示</b> Re・abs の 5 枚で描く。バンド表示は <code>q</code> 点のユニタリ <code>U(q)</code> で回す<b>簡易診断</b>
+    （厳密な form-factor 版ではない）。
+  </p>
+
+  <div class="note">
+    <b>使い方：</b> 推奨は <code>plot.jl</code> 経由（<code>simulation.h5</code> の <code>ν=0</code> スライスから描画）。
+    単体なら <code>julia --project=. 5_plot_flex.jl</code>。<br>
+    <b>データ源：</b> フル配列 <code>χ<sub>0</sub>/χ<sub>s</sub>/χ<sub>c</sub></code> は <code>__FLEX_CACHE__</code>（連結セッションがあれば優先）。
+    単体実行時は HDF5 の <code>ν=0</code> スライス <code>flex_result/{chi_0_w0, chi_s_w0, chi_c_w0}</code> を使う。<br>
+    <b>出力：</b> <code>Flex_results/{chi0, chi_s, chi_c}/</code> に
+    <code>diag_leadingeig.png</code>・<code>orb_real.png</code>・<code>band_real.png</code>・<code>orb_abs.png</code>・<code>band_abs.png</code>。<br>
+    <b>依存：</b> <code>functions/nonint.jl</code>（<a href="../functions/lattice.html"><code>_build_kmesh_cart</code></a> 等）・
+    <code>functions/kplot.jl</code>（<a href="../functions/kplot.html"><code>bz_map</code></a>）・PyPlot（Agg バックエンド）。
+  </div>
+
+  <div class="flow">
+    <span class="step">simulation.h5 (+__FLEX_CACHE__)</span><span class="arrow">&rarr;</span>
+    <span class="step">χ の ν=0 スライス</span><span class="arrow">&rarr;</span>
+    <span class="step">M_ij(q) 軌道行列</span><span class="arrow">&rarr;</span>
+    <span class="step">対角化 / 軌道 / バンド表示</span><span class="arrow">&rarr;</span>
+    <span class="step">Flex_results/*.png</span>
+  </div>
+
+  <h2 class="font-serif">5_plot_flex.jl<span class="file-kind">Julia</span></h2>
+  <p class="lead">FLEX の感受率マップを描く可視化ドライバ。冒頭の依存パッケージと定数は次のとおり。</p>
+
+  <div class="imports">
+    <div class="code-head">5_plot_flex.jl — 冒頭</div>
+<pre>using HDF5
+using Printf
+using LinearAlgebra
+
+ENV["MPLBACKEND"] = "Agg"
+using PyPlot
+
+include("functions/nonint.jl")   # _build_kmesh_cart, _build_bz_mask, _as3
+include("functions/kplot.jl")    # bz_map
+
+const SIM_FILENAME = "simulation.h5"
+const OUTDIR = "Flex_results"</pre>
+  </div>
+
+  <div class="fn-list">
+
+    <!-- ============ _read_ctx ============ -->
+    <div class="fn-row">
+      <span class="fn-name">_read_ctx<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>simulation.h5</code> から描画に必要なメタ（メッシュ・格子・<code>mask_inds</code>・<code>UNITARY</code>）を一括読み込み</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">_read_ctx(f) &rarr; (Nqx, Nqy, Norb, lattice_type, b1, b2, mask_inds, UNITARY)</div>
+
+      <h4>概要</h4>
+      <p>
+        開いた HDF5 ハンドル <code>f</code> から、感受率マップを描くのに必要なコンテキストを名前付きタプルにまとめて返す。
+        メッシュ寸法 <code>Nqx/Nqy/Norb</code>、逆格子ベクトル <code>b1/b2</code> と <code>lattice_type</code>、複合添字 <code>mask_inds</code>、
+        バンド回転用の <code>UNITARY</code> を読む。<code>UNITARY</code> は<b>相互作用込みの <code>UNITARY_corrected</code> があればそれを優先</b>し、
+        無ければ非相互作用対角化の <code>nonint/diag/UNITARY</code> を使う。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">5_plot_flex.jl · _read_ctx</div>
+<pre>function _read_ctx(f)
+    p = f["params"]
+    Nqx = Int(read(p["Nqx"])); Nqy = Int(read(p["Nqy"])); Norb = Int(read(p["Norb"]))
+    gl = f["nonint/lattice"]
+    lattice_type = String(read(gl["lattice_type"]))
+    b1 = _as3(read(gl["b1"])); b2 = _as3(read(gl["b2"]))
+    mask_inds = Int.(read(f["flex_result/mask_inds"]))
+    UNITARY = haskey(f, "flex_result") &amp;&amp; haskey(f["flex_result"], "UNITARY_corrected") ?
+        ComplexF64.(read(f["flex_result/UNITARY_corrected"])) : ComplexF64.(read(f["nonint/diag/UNITARY"]))
+    return (Nqx=Nqx, Nqy=Nqy, Norb=Norb, lattice_type=lattice_type, b1=b1, b2=b2, mask_inds=mask_inds, UNITARY=UNITARY)
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>Nqx/Nqy/Norb</code> — <code>params</code> グループからメッシュ分割数と軌道数を <code>Int</code> で取り出す。</li>
+        <li><code>b1 = _as3(read(gl["b1"]))</code> — 逆格子ベクトルを <code>_as3</code> で必ず 3 成分ベクトルに整形（<a href="../functions/lattice.html">lattice</a> のヘルパ）。<code>bz_map</code> の座標変換に渡す。</li>
+        <li><code>mask_inds</code> — FLEX が実際に計算した<b>複合添字</b>の一覧。感受率行列の軌道対角ブロックを引くための索引に使う。</li>
+        <li><code>UNITARY = ... UNITARY_corrected ... : ... nonint/diag/UNITARY</code> — <b>相互作用込みユニタリを優先</b>する三項演算。バンド表示 <code>U(q)† M U(q)</code> の回転に使う。</li>
+      </ul>
+
+      <div class="related">関連：<a href="../functions/lattice.html"><code>_as3</code></a>（ベクトル整形）／ <a href="../functions/nonint.html">Nonint</a> の <code>UNITARY</code>（対角化で生成）</div>
+    </div>
+
+    <!-- ============ _w0_slice ============ -->
+    <div class="fn-row">
+      <span class="fn-name">_w0_slice<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>ν=0</code> スライスを取り出す（cache は 6 階 → 先頭を切る、HDF5 は 5 階そのまま）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">_w0_slice(x) &rarr; (Nqx, Nqy, Nqz, Nco, Nco) の 5 階配列</div>
+
+      <h4>概要</h4>
+      <p>
+        入力 <code>x</code> の次元数を見て、静的（<code>ν=0</code>）成分だけを 5 階配列で返す 1 行関数。<code>__FLEX_CACHE__</code> のフル配列は
+        周波数軸を含む <b>6 階</b>なので先頭 <code>[1, …]</code> を切り出し、HDF5 から読んだ <code>ν=0</code> スライスは既に <b>5 階</b>なので
+        そのまま返す。呼び出し側（cache 経由か HDF5 経由か）の違いをここで吸収する。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">5_plot_flex.jl · _w0_slice</div>
+<pre># ν=0 スライス（Nqx,Nqy,Nqz,Nco,Nco）を取り出す。cache は 6階、HDF5 は 5階。
+_w0_slice(x) = ndims(x) == 6 ? x[1, :, :, :, :, :] : x</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>ndims(x) == 6</code> — フル配列（周波数軸込み）なら真。ボゾン周波数の先頭 <code>[1, …]</code> が <code>iν=0</code>。</li>
+        <li><code>x[1, :, :, :, :, :]</code> — 6 階のとき先頭周波数を固定して 5 階に落とす。</li>
+        <li><code>: x</code> — 5 階（HDF5 の <code>chi_*_w0</code>）ならそのまま返す。</li>
+      </ul>
+
+      <div class="related">関連：<code>main</code>（cache／HDF5 の両経路でこれを通す）</div>
+    </div>
+
+    <!-- ============ chi_orb_matrix ============ -->
+    <div class="fn-row">
+      <span class="fn-name">chi_orb_matrix<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">軌道密度ブロック <code>M<sub>ij</sub>(q) = χ<sub>(ii)(jj)</sub>(q)</code> を <code>(Nqx,Nqy,Norb,Norb)</code> で構築</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">chi_orb_matrix(chi_w0, Norb, mask_inds) &rarr; M[qx,qy,i,j]（ComplexF64, Nqx×Nqy×Norb×Norb）</div>
+
+      <h4>概要</h4>
+      <p>
+        複合添字で格納された感受率 <code>χ(ν=0)</code> から、<b>軌道の密度-密度ブロック</b>
+        <code>M<sub>ij</sub>(q) = χ<sub>(i,i),(j,j)</sub>(q)</code> だけを抜き出して <code>Norb×Norb</code> 行列（各 <code>q</code> ごと）に組み直す。
+        軌道 <code>i</code> の対角複合添字を <code>diag_index(i)</code> で作り、<code>mask_inds</code> 内の位置を <code>lookup</code>（<code>findfirst</code>）で引く。
+        <b>mask に無い成分は 0</b> で埋める。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">5_plot_flex.jl · chi_orb_matrix</div>
+<pre># χ(ν=0) の軌道密度ブロック M_ij(q)=χ_{(ii)(jj)}(q) を (Nqx,Nqy,Norb,Norb) で作る。
+function chi_orb_matrix(chi_w0, Norb, mask_inds)
+    Nqx, Nqy = size(chi_w0, 1), size(chi_w0, 2)
+    diag_index(i) = (i - 1) * Norb + i
+    lookup(idx) = findfirst(==(idx), mask_inds)
+    M = zeros(ComplexF64, Nqx, Nqy, Norb, Norb)
+    for qx in 1:Nqx, qy in 1:Nqy, i in 1:Norb, j in 1:Norb
+        I = lookup(diag_index(i)); J = lookup(diag_index(j))
+        M[qx, qy, i, j] = (I === nothing || J === nothing) ? 0.0 : chi_w0[qx, qy, 1, I, J]
+    end
+    return M
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>diag_index(i) = (i-1)*Norb + i</code> — 軌道 <code>i</code> の<b>対角複合添字</b> <code>(i,i)</code>（<code>calc_CHI0!</code> と同じ複合添字規約）。</li>
+        <li><code>lookup(idx) = findfirst(==(idx), mask_inds)</code> — その複合添字が <code>mask_inds</code> の何番目にあるか。計算されていなければ <code>nothing</code>。</li>
+        <li><code>M[qx,qy,i,j] = (I === nothing || J === nothing) ? 0.0 : chi_w0[qx,qy,1,I,J]</code> — mask に無い対角ブロックは <b>0</b>、あれば <code>χ</code> の該当要素を格納。第 3 軸 <code>1</code> は <code>Nqz=1</code>（2 次元 BZ）を潰す添字。</li>
+        <li>結果 <code>M</code> は各 <code>q</code> で <code>Norb×Norb</code> の（一般に非対称・複素）行列。<b>非対角 <code>i≠j</code> も含む</b>。</li>
+      </ul>
+
+      <div class="related">関連：<a href="../functions/flex.html">FLEX</a> の <code>mask_inds</code>（複合添字）／ <code>chi_band_matrix</code>・<code>leading_eig_map</code>（この <code>M</code> を受ける）</div>
+    </div>
+
+    <!-- ============ chi_band_matrix ============ -->
+    <div class="fn-row">
+      <span class="fn-name">chi_band_matrix<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">バンド表示 <code>M<sub>band</sub>(q) = U(q)† M<sub>orb</sub>(q) U(q)</code>（<code>q</code> 点のユニタリで回す簡易診断）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">chi_band_matrix(Morb, UNITARY) &rarr; Mb[qx,qy,i,j]（Morb と同形）</div>
+
+      <h4>概要</h4>
+      <p>
+        軌道行列 <code>M<sub>orb</sub>(q)</code> を、その <code>q</code> 点の固有ベクトル行列 <code>U(q)</code> で
+        <code>M<sub>band</sub>(q) = U(q)† M<sub>orb</sub>(q) U(q)</code> と回転してバンド基底の行列を作る。
+        あくまで <b>各 <code>q</code> 点のユニタリで軌道行列を相似変換する簡易診断</b>で、感受率本来の form-factor
+        <code>U(k)U(k+q)</code> を厳密に畳んだものではない点に注意。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">5_plot_flex.jl · chi_band_matrix</div>
+<pre># バンド表示: M_band(q) = U(q)† M_orb(q) U(q)（q 点のユニタリで回転する簡易診断）。
+function chi_band_matrix(Morb, UNITARY)
+    Nqx, Nqy, Norb, _ = size(Morb)
+    Mb = similar(Morb)
+    for qx in 1:Nqx, qy in 1:Nqy
+        U = @view UNITARY[qx, qy, 1, :, :]
+        Mb[qx, qy, :, :] .= U' * (@view Morb[qx, qy, :, :]) * U
+    end
+    return Mb
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>U = @view UNITARY[qx,qy,1,:,:]</code> — その <code>q</code> の <code>Norb×Norb</code> 固有ベクトル行列を参照（コピーなし）。第 3 軸 <code>1</code> は <code>Nqz=1</code>。</li>
+        <li><code>Mb[...] .= U' * Morb * U</code> — <code>U†MU</code> の相似変換。<code>U'</code> は共役転置。</li>
+        <li>この関数は <b>real・abs 両方のバンドマップ</b>（<code>band_real.png</code>／<code>band_abs.png</code>）の入力になる。</li>
+      </ul>
+
+      <div class="warn-box">
+        <b>簡易診断であることに注意：</b> ここでの回転は <code>q</code> 点の <code>U(q)</code> 1 枚を掛けるだけで、感受率の厳密なバンド表現に必要な
+        <code>U(k)</code>・<code>U(k+q)</code> の form-factor 畳み込みではない。ピーク位置の当たりを付ける定性的な図として読む。
+      </div>
+
+      <div class="related">関連：<code>chi_orb_matrix</code>（入力 <code>M<sub>orb</sub></code>）／ <code>_read_ctx</code> の <code>UNITARY</code>（回転行列）</div>
+    </div>
+
+    <!-- ============ leading_eig_map ============ -->
+    <div class="fn-row">
+      <span class="fn-name">leading_eig_map<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>M<sub>orb</sub>(q)</code> のエルミート部の主固有値マップ（回転不変で orb/band 共通）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">leading_eig_map(Morb) &rarr; out[qx,qy]（Float64, Nqx×Nqy）</div>
+
+      <h4>概要</h4>
+      <p>
+        各 <code>q</code> 点で <code>M<sub>orb</sub>(q)</code> の実部のエルミート部を作り、その<b>最大固有値</b>を並べた 2 次元マップを返す。
+        主固有値はユニタリ相似変換 <code>U†MU</code> で不変（<b>回転不変</b>）なので、軌道表示でもバンド表示でも同じ値になり、
+        <code>diag_leadingeig.png</code> は両者に共通の「対角化した感受率」として描ける。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">5_plot_flex.jl · leading_eig_map</div>
+<pre># M_orb(q) の主固有値（エルミート部）マップ（回転不変なので orb/band 共通）。
+function leading_eig_map(Morb)
+    Nqx, Nqy, Norb, _ = size(Morb)
+    out = zeros(Nqx, Nqy)
+    for qx in 1:Nqx, qy in 1:Nqy
+        M = real.(@view Morb[qx, qy, :, :])
+        Mh = (M .+ transpose(M)) .* 0.5
+        out[qx, qy] = maximum(eigvals(Hermitian(Mh)))
+    end
+    return out
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>M = real.(@view Morb[qx,qy,:,:])</code> — 実部を取り出す。密度感受率の対角ブロックは実対称に近い。</li>
+        <li><code>Mh = (M .+ transpose(M)) .* 0.5</code> — <code>½(M + Mᵀ)</code> で<b>対称化</b>してから固有値を取る（数値誤差でずれた非対称成分をならす）。</li>
+        <li><code>maximum(eigvals(Hermitian(Mh)))</code> — <code>Hermitian</code> で包んで実固有値を得て、その<b>最大</b>を主固有値に。</li>
+        <li>主固有値は相似変換で不変なので、<b>orb・band で同一</b>のマップになる（対角化表示として 1 枚で済む）。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>回転不変：</b> <code>U†MU</code> の固有値は <code>M</code> の固有値と一致する。だから <code>diag_leadingeig.png</code> は軌道／バンドどちらの見方でも変わらず、
+        感受率の<b>最も強く応答するモードの大きさ</b>を <code>q</code> 面上で示す 1 枚として使える。
+      </div>
+
+      <div class="related">関連：<code>chi_orb_matrix</code>（入力 <code>M</code>）／ <code>plot_chi_diag</code>（このマップを描画）</div>
+    </div>
+
+    <!-- ============ plot_chi_diag ============ -->
+    <div class="fn-row">
+      <span class="fn-name">plot_chi_diag<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">対角化（主固有値）マップを BZ 充填で pcolormesh、六角形は破線ガイド</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">plot_chi_diag(ctx, chimap, title_str; out_png)   # 1 枚の PNG を保存</div>
+
+      <h4>概要</h4>
+      <p>
+        <code>leading_eig_map</code> が返した 2 次元マップを、<a href="../functions/kplot.html"><code>bz_map</code></a> で
+        <b>並進複製して窓いっぱい</b>に展開し（<code>supercell_range=2, mask_to_bz=false</code>）、<code>pcolormesh</code> で塗る。
+        BZ 境界（六角形）は白の破線でガイド表示。<code>viridis</code> カラーマップで 1 枚の PNG に保存する。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">5_plot_flex.jl · plot_chi_diag</div>
+<pre># 対角化した χ(q) マップ（主固有値）を窓いっぱいに（並進複製、六角形は破線ガイド）。
+function plot_chi_diag(ctx, chimap, title_str; out_png)
+    m = bz_map(chimap, ctx.Nqx, ctx.Nqy;
+        b1=ctx.b1, b2=ctx.b2, lattice_type=ctx.lattice_type,
+        axis_unit=:pi, supercell_range=2, mask_to_bz=false)
+    fig = figure(figsize=(5.6, 4.8))
+    pc = pcolormesh(m.X, m.Y, m.Z, cmap="viridis", shading="auto")
+    plot(m.bx, m.by, color="w", linestyle="--", linewidth=1.0)
+    colorbar(pc, label="leading eigenvalue")
+    gca().set_aspect("equal"); xlim(-1.5, 1.5); ylim(-1.5, 1.5)
+    xlabel("q_x/π"); ylabel("q_y/π"); title(title_str)
+    tight_layout()
+    savefig(out_png, dpi=200, bbox_inches="tight")
+    close(fig)
+    println("Saved: $out_png")
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>bz_map(chimap, Nqx, Nqy; …, supercell_range=2, mask_to_bz=false)</code> — <b>並進複製</b>して周期を跨いで敷き詰め、BZ でマスクせず窓全体を埋める。<code>axis_unit=:pi</code> で軸は <code>q/π</code> 単位。</li>
+        <li><code>pcolormesh(m.X, m.Y, m.Z, cmap="viridis")</code> — 変換後グリッド <code>(X,Y,Z)</code> をそのまま塗る。</li>
+        <li><code>plot(m.bx, m.by, color="w", linestyle="--")</code> — <code>bz_map</code> が返す境界線 <code>(bx,by)</code> を<b>白破線</b>で重ねる（六角形ガイド）。</li>
+        <li><code>xlim(-1.5, 1.5); ylim(-1.5, 1.5)</code> と <code>set_aspect("equal")</code> — 等方・固定ウィンドウで複製された BZ を見せる。</li>
+      </ul>
+
+      <div class="related">関連：<a href="../functions/kplot.html"><code>bz_map</code></a>（並進複製と境界線）／ <code>leading_eig_map</code>（入力マップ）</div>
+    </div>
+
+    <!-- ============ plot_chi_matrix ============ -->
+    <div class="fn-row">
+      <span class="fn-name">plot_chi_matrix<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>Norb×Norb</code> 行列プロット（<code>:real</code> は bwr 対称スケール、<code>:abs</code> は magma で 0..max）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">plot_chi_matrix(ctx, Mmat, title_str; component::Symbol, out_png)   # component=:real or :abs</div>
+
+      <h4>概要</h4>
+      <p>
+        軌道またはバンド行列 <code>M<sub>ij</sub>(q)</code> の <b>全 <code>(i,j)</code> 成分</b>を <code>Norb×Norb</code> のサブプロット格子で並べて描く。
+        各 <code>(i,j)</code> を <code>bz_map</code> で並進複製し、<code>component=:real</code> なら <b><code>bwr</code> の対称スケール</b>（<code>vmin=-vmax</code>）、
+        <code>:abs</code> なら <b><code>magma</code> で <code>0..max</code></b>。全成分で共通のカラースケールを取り、右端に 1 本の colorbar を付ける。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">5_plot_flex.jl · plot_chi_matrix</div>
+<pre># Norb×Norb 行列プロット（軌道 or バンド、real or abs、非対角込）。
+function plot_chi_matrix(ctx, Mmat, title_str; component::Symbol, out_png)
+    Nqx, Nqy, Norb = ctx.Nqx, ctx.Nqy, ctx.Norb
+    maps = Matrix{Any}(undef, Norb, Norb)
+    allv = Float64[]
+    for i in 1:Norb, j in 1:Norb
+        d = @view Mmat[:, :, i, j]
+        data = component === :abs ? abs.(d) : real.(d)
+        m = bz_map(Float64.(data), Nqx, Nqy;
+            b1=ctx.b1, b2=ctx.b2, lattice_type=ctx.lattice_type,
+            axis_unit=:pi, supercell_range=2, mask_to_bz=false)
+        maps[i, j] = m
+        append!(allv, filter(isfinite, vec(m.Z)))
+    end
+    if component === :abs
+        vmax = isempty(allv) ? 1.0 : maximum(allv); vmax = vmax > 0 ? vmax : 1.0
+        vmin = 0.0; cmap = "magma"
+    else
+        vmax = isempty(allv) ? 1.0 : maximum(abs.(allv)); vmax = vmax > 0 ? vmax : 1.0
+        vmin = -vmax; cmap = "bwr"
+    end
+    fig, axs = subplots(Norb, Norb, figsize=(2.9 * Norb + 1.0, 2.7 * Norb), squeeze=false)
+    local pc
+    for i in 1:Norb, j in 1:Norb
+        ax = axs[i, j]; m = maps[i, j]
+        pc = ax.pcolormesh(m.X, m.Y, m.Z, cmap=cmap, vmin=vmin, vmax=vmax, shading="auto")
+        ax.plot(m.bx, m.by, color="k", linestyle="--", linewidth=0.7, alpha=0.7)
+        ax.set_aspect("equal"); ax.set_xlim(-1.5, 1.5); ax.set_ylim(-1.5, 1.5)
+        ax.set_title(@sprintf("(%d,%d)", i, j), fontsize=9)
+        ax.tick_params(labelsize=7)
+        i == Norb ? ax.set_xlabel("q_x/π", fontsize=8) : ax.set_xticklabels([])
+        j == 1 ? ax.set_ylabel("q_y/π", fontsize=8) : ax.set_yticklabels([])
+    end
+    fig.subplots_adjust(left=0.06, right=0.88, bottom=0.08, top=0.90, wspace=0.15, hspace=0.25)
+    cax = fig.add_axes([0.90, 0.12, 0.02, 0.74])
+    fig.colorbar(pc, cax=cax)
+    fig.suptitle(title_str, fontsize=13)
+    savefig(out_png, dpi=180, bbox_inches="tight")
+    close(fig)
+    println("Saved: $out_png")
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>data = component === :abs ? abs.(d) : real.(d)</code> — 表示量の切替。<code>:abs</code> は絶対値、<code>:real</code> は実部。</li>
+        <li><code>append!(allv, filter(isfinite, vec(m.Z)))</code> — 全 <code>(i,j)</code> 成分の有限値を集めて<b>共通スケール</b>を決める材料に。</li>
+        <li><code>:abs</code> → <code>vmin=0, cmap="magma"</code>／<code>:real</code> → <code>vmin=-vmax, cmap="bwr"</code> — abs は 0 起点、real は<b>0 対称</b>の発散カラーマップ。<code>vmax = vmax &gt; 0 ? vmax : 1.0</code> でゼロ割れ・平坦データを保護。</li>
+        <li><code>subplots(Norb, Norb; squeeze=false)</code> — <code>Norb×Norb</code> の格子。<code>squeeze=false</code> で <code>Norb=1</code> でも 2 次元配列を保つ。</li>
+        <li><code>i == Norb ? … : ax.set_xticklabels([])</code> / <code>j == 1 ? … : ax.set_yticklabels([])</code> — <b>最下行・最左列だけ</b>に軸ラベル・目盛りを残して見やすくする。</li>
+        <li><code>add_axes([0.90, 0.12, 0.02, 0.74])</code> + <code>fig.colorbar(pc, cax=cax)</code> — 右端に共通の colorbar を 1 本。</li>
+      </ul>
+
+      <div class="tip-box">
+        <b>real と abs の描き分け：</b> <code>:real</code> は符号（同相／逆相の応答）を <code>bwr</code> の赤青で、<code>:abs</code> は強度だけを <code>magma</code> で見る。
+        非対角 <code>(i,j)</code>（<code>i≠j</code>）も含めて全ブロックを同一スケールで並べるので、軌道間の相対的な大きさが読み取れる。
+      </div>
+
+      <div class="related">関連：<a href="../functions/kplot.html"><code>bz_map</code></a>（各成分の並進複製）／ <code>chi_orb_matrix</code>・<code>chi_band_matrix</code>（入力行列）</div>
+    </div>
+
+    <!-- ============ plot_one_chi ============ -->
+    <div class="fn-row">
+      <span class="fn-name">plot_one_chi<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">1 つの <code>χ</code> についてフォルダを作り diag／orb・band × real・abs の 5 枚を出力</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">plot_one_chi(ctx, chi_w0, name, peak)   # Flex_results/&lt;name&gt;/ に 5 枚保存</div>
+
+      <h4>概要</h4>
+      <p>
+        1 種類の感受率 <code>χ(ν=0)</code> を受け取り、出力フォルダ <code>Flex_results/&lt;name&gt;/</code> を作ってから
+        <code>chi_orb_matrix</code> で軌道行列、<code>chi_band_matrix</code> でバンド行列を組み、<b>対角化 1 枚＋（orb・band）×（real・abs）4 枚</b>の
+        計 5 枚を描く。<code>peak</code>（最大固有値）はタイトルに埋め込む。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">5_plot_flex.jl · plot_one_chi</div>
+<pre># 1つの χ について、フォルダを作って diag / orb・band の real・abs を描く。
+function plot_one_chi(ctx, chi_w0, name, peak)
+    outdir = joinpath(OUTDIR, name); mkpath(outdir)
+    Morb = chi_orb_matrix(chi_w0, ctx.Norb, ctx.mask_inds)
+    Mband = chi_band_matrix(Morb, ctx.UNITARY)
+    tag = @sprintf("%s(q,ν=0)  grid=%dx%d  peak=%.3f", name, ctx.Nqx, ctx.Nqy, peak)
+
+    plot_chi_diag(ctx, leading_eig_map(Morb), "$name leading-eig (ν=0)  peak=$(@sprintf("%.3f", peak))";
+        out_png=joinpath(outdir, "diag_leadingeig.png"))
+    plot_chi_matrix(ctx, Morb, "Re $tag  (orbital)"; component=:real, out_png=joinpath(outdir, "orb_real.png"))
+    plot_chi_matrix(ctx, Mband, "Re $tag  (band)"; component=:real, out_png=joinpath(outdir, "band_real.png"))
+    plot_chi_matrix(ctx, Morb, "|$tag|  (orbital)"; component=:abs, out_png=joinpath(outdir, "orb_abs.png"))
+    plot_chi_matrix(ctx, Mband, "|$tag|  (band)"; component=:abs, out_png=joinpath(outdir, "band_abs.png"))
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>outdir = joinpath(OUTDIR, name); mkpath(outdir)</code> — <code>Flex_results/chi0</code> など<b>名前ごとのサブフォルダ</b>を用意。</li>
+        <li><code>Morb = chi_orb_matrix(...)</code> → <code>Mband = chi_band_matrix(Morb, ctx.UNITARY)</code> — 軌道行列を作り、それを回してバンド行列に。</li>
+        <li><code>plot_chi_diag(ctx, leading_eig_map(Morb), …)</code> — 主固有値マップ <code>diag_leadingeig.png</code>（orb・band 共通の 1 枚）。</li>
+        <li><code>orb_real</code>・<code>band_real</code>（<code>component=:real</code>）と <code>orb_abs</code>・<code>band_abs</code>（<code>:abs</code>）— <b>軌道／バンド × 実部／絶対値</b>の 4 枚。</li>
+        <li><code>tag</code> — <code>name・grid・peak</code> をまとめた図タイトル文字列。</li>
+      </ul>
+
+      <div class="related">関連：<code>chi_orb_matrix</code>・<code>chi_band_matrix</code>・<code>leading_eig_map</code>・<code>plot_chi_diag</code>・<code>plot_chi_matrix</code>（この関数がまとめて呼ぶ）</div>
+    </div>
+
+    <!-- ============ main ============ -->
+    <div class="fn-row">
+      <span class="fn-name">main<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">cache 優先で <code>ν=0</code> スライスを用意し、<code>chi0/chi_s/chi_c</code> を描く（無い χ はスキップ）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">main()   # simulation.h5 を開き、χ0/χ_s/χ_c のマップ群を Flex_results/ に出力</div>
+
+      <h4>概要</h4>
+      <p>
+        エントリポイント。出力ルート <code>Flex_results/</code> を作り、<code>__FLEX_CACHE__</code> があればそのフル配列から
+        <code>ν=0</code> スライスを取り（<b>cache 優先</b>）、無ければ HDF5 の <code>chi_*_w0</code> スライスを読む。最大固有値
+        <code>chi_0/chi_s/chi_c_maxeigval</code> を <code>peak</code> として渡し、<code>plot_one_chi</code> を <code>chi0</code>・<code>chi_s</code>・<code>chi_c</code> の順に呼ぶ。
+        HDF5 に <code>chi_s_w0</code>／<code>chi_c_w0</code> が無ければ<b>その χ はスキップ</b>して警告を出す。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">5_plot_flex.jl · main</div>
+<pre>function main()
+    println("--- Plot FLEX susceptibilities from $SIM_FILENAME ---")
+    mkpath(OUTDIR)
+    cache = (isdefined(Main, :__FLEX_CACHE__) &amp;&amp; Main.__FLEX_CACHE__ isa AbstractDict) ? Main.__FLEX_CACHE__ : nothing
+
+    h5open(SIM_FILENAME, "r") do f
+        ctx = _read_ctx(f)
+        chi0_max = Float64(read(f["flex_result/chi_0_maxeigval"]))
+        Us_max = Float64(read(f["flex_result/chi_s_maxeigval"]))
+        Uc_max = Float64(read(f["flex_result/chi_c_maxeigval"]))
+        println(@sprintf("chi0 max-eig=%.4f  chi_s max-eig=%.4f  chi_c max-eig=%.4f", chi0_max, Us_max, Uc_max))
+
+        # χ0 / χ_s / χ_c の ν=0 スライスを用意（cache 優先、無ければ HDF5 スライス）
+        if cache !== nothing &amp;&amp; haskey(cache, :chi_s) &amp;&amp; haskey(cache, :chi_c) &amp;&amp; haskey(cache, :chi_0)
+            println("Using __FLEX_CACHE__ (chi_0/chi_s/chi_c full arrays)")
+            chi0_w0 = _w0_slice(cache[:chi_0]); chis_w0 = _w0_slice(cache[:chi_s]); chic_w0 = _w0_slice(cache[:chi_c])
+        else
+            println("__FLEX_CACHE__ not available -&gt; read ν=0 slices from HDF5")
+            chi0_w0 = read(f["flex_result/chi_0_w0"])
+            chis_w0 = haskey(f["flex_result"], "chi_s_w0") ? read(f["flex_result/chi_s_w0"]) : nothing
+            chic_w0 = haskey(f["flex_result"], "chi_c_w0") ? read(f["flex_result/chi_c_w0"]) : nothing
+        end
+
+        plot_one_chi(ctx, chi0_w0, "chi0", chi0_max)
+        if chis_w0 !== nothing
+            plot_one_chi(ctx, chis_w0, "chi_s", Us_max)
+        else
+            println("chi_s_w0 not found in HDF5 (run FLEX to regenerate) -&gt; skip chi_s/")
+        end
+        if chic_w0 !== nothing
+            plot_one_chi(ctx, chic_w0, "chi_c", Uc_max)
+        else
+            println("chi_c_w0 not found in HDF5 (run FLEX to regenerate) -&gt; skip chi_c/")
+        end
+    end
+    println("Done. Outputs under: $OUTDIR/{chi0,chi_s,chi_c}/")
+end
+
+main()</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>cache = (isdefined(Main, :__FLEX_CACHE__) &amp;&amp; … isa AbstractDict) ? … : nothing</code> — 連結セッションの<b>フル配列 cache</b> を検出。無ければ <code>nothing</code>。</li>
+        <li><code>chi0_max/Us_max/Uc_max</code> — 各感受率の<b>最大固有値</b>を HDF5 から読み、<code>peak</code> として図タイトルに使う。</li>
+        <li><code>if cache !== nothing &amp;&amp; haskey(cache, :chi_0/:chi_s/:chi_c)</code> — cache に 3 つ揃っていれば <code>_w0_slice</code> で <code>ν=0</code> を取り出す（<b>優先</b>）。</li>
+        <li><code>else</code> ブロック — HDF5 の <code>chi_0_w0</code> を読み、<code>chi_s_w0</code>／<code>chi_c_w0</code> は <code>haskey</code> で<b>あれば読む・無ければ <code>nothing</code></b>。</li>
+        <li><code>plot_one_chi(ctx, …, "chi0"/"chi_s"/"chi_c", peak)</code> — 3 種を順に描画。<code>χ<sub>s</sub>/χ<sub>c</sub></code> が <code>nothing</code> のときは<b>スキップして警告</b>（FLEX 再実行で再生成できる旨）。</li>
+      </ul>
+
+      <div class="related">関連：<a href="../functions/flex.html">FLEX</a> の <code>calc_CHIS_CHIC!</code>（<code>χ<sub>s</sub>/χ<sub>c</sub></code> を作って保存）／ <code>_read_ctx</code>・<code>_w0_slice</code>・<code>plot_one_chi</code></div>
+    </div>
+
+  </div>
+
+  <div class="tip-box">
+    <b>2 つの読み方：</b> <code>diag_leadingeig.png</code>（主固有値）は相似変換で不変なので<b>軌道表示・バンド表示で共通</b>の 1 枚。
+    一方 <code>band_*.png</code> は <code>q</code> 点のユニタリ <code>U(q)</code> で <code>M<sub>orb</sub></code> を回した<b>簡易診断</b>で、感受率本来の
+    form-factor（<code>U(k)U(k+q)</code>）を厳密に畳んだバンド表現ではない。ピーク <code>q</code> の当たりを付ける定性図として読む。
+  </div>
+
+  <div class="warn-box">
+    <b>バックエンド設定の順序：</b> <code>ENV["MPLBACKEND"] = "Agg"</code> は必ず <code>using PyPlot</code> の<b>前</b>に置く。
+    PyPlot は読み込み時にバックエンドを確定するため、順序が逆だと画面出力を試みて GUI の無い環境で失敗し得る（<code>Agg</code> はファイル出力専用の非対話バックエンド）。
+  </div>
+
+  <div class="note">
+    <b>関連：</b> ここで描く感受率そのものを作る計算は <a href="2_run_FLEX.html">2_run_FLEX.jl</a>（<a href="../functions/flex.html">FLEX</a> の
+    <code>calc_CHIS_CHIC!</code> ほか）。同じ FLEX 結果から超伝導ギャップの可視化に進むなら
+    <a href="6_plot_eliashberg.html">6_plot_eliashberg.jl</a>。格子座標変換・BZ 充填の詳細は
+    <a href="../functions/lattice.html">lattice</a> と <a href="../functions/kplot.html">kplot</a> を参照。
+  </div>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ — Plot FLEX</p>
+</footer>
+
+<script>
+  document.querySelectorAll('.fn-row').forEach(function (row) {
+    row.addEventListener('click', function () {
+      row.classList.toggle('open');
+    });
+  });
+</script>
+
+</body>
+</html>

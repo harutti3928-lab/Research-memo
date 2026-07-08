@@ -26,6 +26,15 @@
     { path: 'code/functions/anomalous.html',       title: 'Anomalous — 異常項の基底変換', section: 'コード解説' },
     { path: 'code/functions/flex.html',            title: 'FLEX — 自己エネルギー・SCF', section: 'コード解説' },
     { path: 'code/functions/eliashberg.html',      title: 'Eliashberg — ギャップ方程式', section: 'コード解説' },
+    { path: 'code/functions/lattice.html',         title: 'Lattice — 格子・逆格子・BZ',  section: 'コード解説' },
+    { path: 'code/functions/kplot.html',           title: 'KPlot — 充填BZマップ',        section: 'コード解説' },
+    { path: 'code/functions/logging.html',         title: 'Logging — ログ整形・分数',    section: 'コード解説' },
+    { path: 'code/run/1_setup.html',               title: '1. Setup — 非相互作用の準備',  section: '実行スクリプト' },
+    { path: 'code/run/2_run_FLEX.html',            title: '2. FLEX — 自己無撞着計算',     section: '実行スクリプト' },
+    { path: 'code/run/3_run_eliashberg.html',      title: '3. Eliashberg — 線形化ギャップ', section: '実行スクリプト' },
+    { path: 'code/run/4_plot_nonint.html',         title: '4. Plot nonint — バンド/DOS/FS', section: '実行スクリプト' },
+    { path: 'code/run/5_plot_flex.html',           title: '5. Plot FLEX — 感受率マップ',  section: '実行スクリプト' },
+    { path: 'code/run/6_plot_eliashberg.html',     title: '6. Plot Eliashberg — ギャップφ', section: '実行スクリプト' },
   ];
 
   var KNOWN_DIRS = ['vasp', 'flex', 'wannier', 'eliashberg'];
@@ -36,7 +45,7 @@
     parts.pop();                 // filename
     var dir = parts.pop() || ''; // parent dir
     var gp  = parts.pop() || ''; // grandparent dir
-    if (dir === 'functions' && gp === 'code') return '../../';
+    if (gp === 'code') return '../../';   // code/functions/*, code/run/*
     return KNOWN_DIRS.indexOf(dir) >= 0 ? '../' : './';
   }
 

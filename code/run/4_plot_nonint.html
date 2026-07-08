@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Plot nonint — バンド・DOS・FS | コード解説</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      background-color: #fcfbfa; color: #2c2a29;
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", "YakuHanJPs", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      line-height: 1.9; -webkit-font-smoothing: antialiased;
+    }
+    .font-serif { font-family: "Times New Roman", "Georgia", "Noto Serif JP", serif; }
+    header { max-width: 820px; margin: 0 auto; padding: 64px 24px 36px; border-bottom: 1px solid #e6e4e0; }
+    .breadcrumb { font-size: 9pt; color: #96938f; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .breadcrumb a { color: #96938f; text-decoration: none; }
+    .breadcrumb a:hover { color: #4a69b5; }
+    header h1 { font-size: 22pt; font-weight: 600; letter-spacing: 1.5px; margin: 0 0 10px; color: #1a1919; }
+    header p { font-size: 10pt; color: #73706c; margin: 0; letter-spacing: 0.5px; }
+    main { max-width: 820px; margin: 0 auto; padding: 48px 24px 100px; }
+    h2 {
+      font-size: 14pt; font-weight: 600; color: #2c2a29;
+      margin: 46px 0 8px; letter-spacing: 0.4px;
+      border-left: 3px solid #4a69b5; padding-left: 14px;
+    }
+    h2 .file-kind { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8.5pt; color: #96938f; font-weight: 500; letter-spacing: 0.5px; margin-left: 10px; }
+    p { font-size: 10.5pt; margin: 0 0 16px; }
+    .lead { font-size: 10.5pt; color: #4a4845; margin: 4px 0 24px; }
+    code { font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9.5pt; background: #f0ede8; padding: 1px 6px; border-radius: 3px; }
+    pre { background: #f5f3ef; padding: 16px 18px; border-radius: 4px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 9pt; overflow-x: auto; margin: 16px 0; line-height: 1.7; }
+    .note { background: #eef1f9; border-left: 3px solid #4a69b5; padding: 14px 18px; margin: 22px 0; font-size: 10pt; color: #2c2a29; border-radius: 0 4px 4px 0; }
+    footer { max-width: 820px; margin: 0 auto; padding: 36px 24px; border-top: 1px solid #e6e4e0; text-align: center; font-size: 8.5pt; color: #96938f; letter-spacing: 1px; }
+
+    /* ── file-level import banner ─────────────── */
+    .imports { margin: 14px 0 30px; border: 1px solid #e3e0da; border-radius: 6px; overflow: hidden; }
+    .imports .code-head { background: #edeae4; padding: 6px 14px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .imports pre { margin: 0; border-radius: 0; background: #fbfaf8; }
+
+    /* ── function list ────────────────────────── */
+    .fn-list { margin: 6px 0 8px; border-top: 1px solid #e6e4e0; }
+    .fn-row {
+      cursor: pointer; padding: 15px 8px 15px 6px;
+      border-bottom: 1px solid #ece9e4; transition: background 0.15s;
+      display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    }
+    .fn-row:hover { background: #f5f3ef; }
+    .fn-name {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 11pt; font-weight: 600; color: #1a3a6a; letter-spacing: 0.2px;
+      white-space: nowrap;
+    }
+    .fn-ind { font-size: 7pt; color: #b0a898; margin-left: 5px; transition: transform 0.2s ease; display: inline-block; vertical-align: middle; }
+    .fn-row.open .fn-ind { transform: rotate(90deg); }
+    .fn-sub { font-size: 9.5pt; color: #73706c; flex: 1; min-width: 220px; }
+
+    /* ── detail panel ─────────────────────────── */
+    .fn-detail {
+      display: none; background: #f9f7f4; border-left: 3px solid #4a69b5;
+      padding: 22px 26px; margin: 0 0 2px; animation: detailIn 0.18s ease-out;
+    }
+    .fn-row.open + .fn-detail { display: block; }
+    @keyframes detailIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+    .fn-detail h4 { font-size: 10pt; font-weight: 600; color: #2c2a29; margin: 20px 0 8px; letter-spacing: 0.3px; }
+    .fn-detail h4:first-of-type { margin-top: 0; }
+    .fn-detail p { font-size: 10pt; margin: 0 0 10px; color: #3a3836; }
+    .syntax-box {
+      font-family: "SFMono-Regular","Consolas","Menlo",monospace;
+      font-size: 9pt; background: #edeae4; border-radius: 3px;
+      padding: 10px 14px; margin: 0 0 4px; color: #2c2a29; overflow-x: auto;
+    }
+    .code-wrap { margin: 12px 0 4px; border: 1px solid #e3e0da; border-radius: 5px; overflow: hidden; }
+    .code-head { background: #edeae4; padding: 5px 13px; font-family: "SFMono-Regular","Consolas","Menlo",monospace; font-size: 8pt; letter-spacing: 0.6px; color: #8a857d; border-bottom: 1px solid #e3e0da; }
+    .code-wrap pre { margin: 0; border-radius: 0; background: #fbfaf8; font-size: 8.7pt; line-height: 1.68; padding: 13px 15px; }
+
+    /* ── "読み方" mapping list ────────────────── */
+    .read-list { list-style: none; padding: 0; margin: 6px 0 4px; }
+    .read-list > li { position: relative; padding: 7px 0 7px 18px; font-size: 9.8pt; color: #3a3836; border-bottom: 1px dashed #e7e3dc; }
+    .read-list > li:last-child { border-bottom: none; }
+    .read-list > li::before { content: "▸"; position: absolute; left: 0; top: 8px; color: #b0a898; font-size: 8pt; }
+    .read-list code { font-size: 8.9pt; color: #1a3a6a; background: #edeae4; }
+    .read-list b { color: #253a6a; }
+
+    .warn-box {
+      background: #fef9ee; border-left: 3px solid #d4a017;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #5a4a1a;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .tip-box {
+      background: #eef7f0; border-left: 3px solid #4a8a5a;
+      padding: 9px 14px; margin: 14px 0 2px; font-size: 9.5pt; color: #234a30;
+      border-radius: 0 3px 3px 0; line-height: 1.75;
+    }
+    .related { margin-top: 16px; padding-top: 10px; border-top: 1px solid #e3ded6; font-size: 9pt; color: #73706c; }
+    .related code { font-size: 8.9pt; color: #1a3a6a; }
+
+    /* ── SCF ループ図 ─────────────────────────── */
+    .flow { margin: 10px 0 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 9pt; }
+    .flow .step { font-family: "SFMono-Regular","Consolas","Menlo",monospace; background: #edeae4; border: 1px solid #e0dcd3; border-radius: 4px; padding: 5px 10px; color: #1a3a6a; }
+    .flow .arrow { color: #b0a898; font-size: 10pt; }
+  </style>
+  <link rel="stylesheet" href="../../site.css">
+  <script defer src="../../site.js"></script>
+</head>
+<body>
+
+<header>
+  <div class="breadcrumb"><a href="../../index.html">研究メモ</a> &rsaquo; コード解説 &rsaquo; 実行スクリプト &rsaquo; Plot nonint</div>
+  <h1 class="font-serif">4. Plot nonint — バンド/DOS/フェルミ面</h1>
+  <p class="font-serif">— simulation.h5 から非相互作用のバンド+DOS・DOS・フェルミ面(E=μ₀)を PNG 出力する &nbsp;|&nbsp; 関数名をクリックで詳細 —</p>
+</header>
+
+<main>
+
+  <p class="lead">
+    <code>simulation.h5</code> を読み、非相互作用の<b>バンド（k-path）+DOS</b>、<b>DOS 単体</b>、
+    <b>フェルミ面</b>（<code>E-μ<sub>0</sub>=0</code> の等高線）を描く可視化スクリプト。DOS/FS は保存済みメッシュではなく
+    <b>細かい k メッシュで <code>H(k)</code> を作り直して</b>滑らかにする。描画は
+    <a href="https://github.com/JuliaPy/PyPlot.jl">PyPlot</a>（<code>Agg</code> バックエンドで画面を使わず PNG に落とす）。
+    土台の <code>H(k)</code> 構築・対角化は <a href="../functions/nonint.html">Nonint</a>、BZ メッシュ幾何は
+    <a href="../functions/lattice.html">lattice</a> の関数を利用する。
+  </p>
+
+  <div class="note">
+    <b>使い方</b>：<code>julia --project=. 4_plot_nonint.jl</code>
+    &nbsp;|&nbsp; <b>入力</b>：<code>simulation.h5</code>
+    &nbsp;|&nbsp; <b>出力</b>（<code>Noint/</code>）：<code>band_kpath_dos.png</code>・<code>dos.png</code>・<code>fs.png</code>
+    &nbsp;|&nbsp; <b>依存</b>：<code>include("functions/nonint.jl")</code>、<code>using PyPlot</code>
+    （<code>ENV["MPLBACKEND"]="Agg"</code> を <code>using</code> の前に設定）。
+  </div>
+
+  <div class="flow">
+    <span class="step">simulation.h5</span><span class="arrow">&rarr;</span>
+    <span class="step">細メッシュで ENERGY_diag 再計算</span><span class="arrow">&rarr;</span>
+    <span class="step">band+DOS / DOS / FS(等高線)</span><span class="arrow">&rarr;</span>
+    <span class="step">Noint/*.png</span>
+  </div>
+
+  <h2 class="font-serif">4_plot_nonint.jl<span class="file-kind">Julia</span></h2>
+  <p class="lead">保存済みの <code>simulation.h5</code> を読み、非相互作用の 3 枚の図を PNG 出力する可視化ドライバ。冒頭の依存パッケージと設定定数は次のとおり。</p>
+
+  <div class="imports">
+    <div class="code-head">4_plot_nonint.jl — 冒頭</div>
+<pre>using HDF5
+using Printf
+using LinearAlgebra
+
+ENV["MPLBACKEND"] = "Agg"   # 画面を使わず PNG 出力
+using PyPlot
+
+include("functions/nonint.jl")
+
+const SIM_FILENAME = "simulation.h5"
+const OUTDIR = "Noint"
+
+const DOS_NGRID   = 1200
+const DOS_SIGMA   = 0.02
+const DOS_EPAD    = 0.10
+const DOS_PLOT_NQ = 256
+const FS_PLOT_NQ  = 256</pre>
+  </div>
+
+  <p>
+    定数群の読み方：<code>DOS_NGRID</code> は DOS を評価するエネルギー格子点数、<code>DOS_SIGMA</code> は DOS の
+    <b>ガウス広がり σ</b>（バンドと同じエネルギー単位）、<code>DOS_EPAD</code> はプロット範囲を上下に広げる余白。
+    <code>DOS_PLOT_NQ</code>／<code>FS_PLOT_NQ</code> は DOS/FS を描くために <b>再計算する細メッシュの 1 辺の点数</b>（<code>Nq×Nq×1</code>）。
+    <code>SIM_FILENAME</code> が入力、<code>OUTDIR</code>（<code>Noint/</code>）が出力先ディレクトリ。
+    <code>ENV["MPLBACKEND"]="Agg"</code> は <code>using PyPlot</code> より<b>前</b>に置くのがポイント（後述）。
+  </p>
+
+  <div class="fn-list">
+
+    <!-- ============ _gauss ============ -->
+    <div class="fn-row">
+      <span class="fn-name">_gauss<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">正規化ガウス <code>N(0,σ)</code>。DOS のブロードニング核（1 行関数）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">_gauss(x::Real, sigma::Real) &rarr; Float64</div>
+
+      <h4>概要</h4>
+      <p>
+        平均 0・標準偏差 <code>σ</code> の<b>正規化ガウス</b>
+        <code>exp(-x<sup>2</sup>/2σ<sup>2</sup>) / (√(2π)·σ)</code> を返す 1 行関数。離散的なバンド固有値
+        <code>E<sub>i</sub></code> を「幅 <code>σ</code> のガウス」に置き換えて足し込むことで、なめらかな状態密度 DOS を作るための核（カーネル）として使う。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">4_plot_nonint.jl · _gauss</div>
+<pre>_gauss(x::Real, sigma::Real) = exp(-0.5 * (Float64(x) / Float64(sigma))^2) / (sqrt(2π) * Float64(sigma))</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>exp(-0.5 * (x/σ)^2)</code> — ガウスの山。<code>x = grid - E<sub>i</sub></code>（評価点と固有値の差）を入れて使う。</li>
+        <li><code>/ (sqrt(2π) * σ)</code> — <b>面積が 1 になる正規化因子</b>。これで DOS の積分が状態数と一致する。</li>
+        <li><code>Float64(...)</code> — 整数や有理数が来ても確実に浮動小数で計算する保険。</li>
+      </ul>
+
+      <div class="related">関連：<code>plot_band_and_dos</code>・<code>plot_dos</code>（この核を全固有値に畳んで DOS を作る）</div>
+    </div>
+
+    <!-- ============ _read_basic ============ -->
+    <div class="fn-row">
+      <span class="fn-name">_read_basic<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">simulation.h5 から <code>mu0</code>/<code>Nqx..</code>/<code>Norb</code>/<code>hopping_path</code>/<code>rfill</code> をまとめて読む</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">_read_basic(f) &rarr; NamedTuple(mu0, Nqx, Nqy, Nqz, Norb, hopping_path, rfill)</div>
+
+      <h4>概要</h4>
+      <p>
+        開いた HDF5 ファイルハンドル <code>f</code> から、非相互作用の描画に必要な基本情報を <b>名前付きタプル</b>にまとめて返すヘルパ。
+        化学ポテンシャル <code>mu0</code>、k メッシュ分割 <code>Nqx/Nqy/Nqz</code>、軌道数 <code>Norb</code>、ホッピングファイルのパス
+        <code>hopping_path</code>、目標フィリング <code>rfill</code> を 1 か所で読み出す。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">4_plot_nonint.jl · _read_basic</div>
+<pre>function _read_basic(f)
+    p = f["params"]
+    return (
+        mu0 = read(f["nonint/chem/mu0"]),
+        Nqx = Int(read(p["Nqx"])), Nqy = Int(read(p["Nqy"])), Nqz = Int(read(p["Nqz"])),
+        Norb = Int(read(p["Norb"])),
+        hopping_path = String(read(p["hopping_path"])),
+        rfill = Float64(read(p["rfill"])),
+    )
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>p = f["params"]</code> — パラメータ群のグループを 1 度だけ取り出して以降使い回す。</li>
+        <li><code>mu0 = read(f["nonint/chem/mu0"])</code> — 非相互作用の化学ポテンシャル <code>μ<sub>0</sub></code>。全図で <code>E-μ<sub>0</sub></code> の基準に使う。</li>
+        <li><code>Int(read(...))</code>／<code>String(read(...))</code>／<code>Float64(read(...))</code> — HDF5 から読んだ値を<b>期待する型に明示変換</b>（後段の配列確保や行列積で型を揃える）。</li>
+        <li>返り値は<b>名前付きタプル</b>なので、呼び出し側は <code>b.mu0</code>・<code>b.Norb</code> のようにフィールド名でアクセスできる。</li>
+      </ul>
+
+      <div class="related">関連：3 つの <code>plot_*</code> 関数（いずれも冒頭でこれを呼ぶ）／ <code>_recompute_energy_diag</code>（<code>hopping_path</code>・<code>Norb</code> を渡す）</div>
+    </div>
+
+    <!-- ============ _recompute_energy_diag ============ -->
+    <div class="fn-row">
+      <span class="fn-name">_recompute_energy_diag<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">細かい k メッシュ（<code>Nq×Nq×1</code>）で <code>H(k)</code> を作り直して対角化 → 滑らかな <code>ENERGY_diag</code></span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">_recompute_energy_diag(hopping_path, Norb, Nq) &rarr; ENERGY_diag[Nq,Nq,1,Norb]</div>
+
+      <h4>概要</h4>
+      <p>
+        DOS やフェルミ面をなめらかに描くために、保存済みの粗いメッシュではなく <b>細かい k メッシュ
+        <code>Nq×Nq×1</code></b> で <code>H(k)</code> を作り直して対角化する。<code>hopping_path</code> のホッピングファイルから
+        <a href="../functions/nonint.html"><code>load_Hamiltonian</code></a> で格子 <code>H(k)</code> を組み、
+        <a href="../functions/nonint.html"><code>diagonalize_Hamiltonian</code></a> でバンド固有値
+        <code>ENERGY_diag</code> を得る（固有ベクトルは使わないので捨てる）。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">4_plot_nonint.jl · _recompute_energy_diag</div>
+<pre>function _recompute_energy_diag(hopping_path, Norb, Nq)
+    ENERGY = load_Hamiltonian(hopping_path, Nq, Nq, 1, Norb)
+    ENERGY_diag, _ = diagonalize_Hamiltonian(ENERGY)
+    return ENERGY_diag
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>load_Hamiltonian(hopping_path, Nq, Nq, 1, Norb)</code> — <b>2 次元系を想定</b>し <code>Nqz=1</code> の <code>Nq×Nq×1</code> メッシュで <code>H(k)</code> を構築。<code>Nq</code> に <code>DOS_PLOT_NQ</code>（=256）を渡すと保存メッシュより細かくなる。</li>
+        <li><code>diagonalize_Hamiltonian(ENERGY)</code> — 各 k で対角化。<code>SIGMA</code> を渡さないので<b>純粋な一体バンド</b>（非相互作用）。</li>
+        <li><code>ENERGY_diag, _ = ...</code> — 固有ベクトル <code>UNITARY</code> は使わないので <code>_</code> で捨て、<b>バンド固有値だけ</b>返す。</li>
+        <li>返り値の形は <code>Nq×Nq×1×Norb</code>（最後の軸がバンド）。DOS はこれを全 k・全バンドで平坦化し、FS は等高線に使う。</li>
+      </ul>
+
+      <div class="related">関連：<a href="../functions/nonint.html"><code>load_Hamiltonian</code>／<code>diagonalize_Hamiltonian</code></a>（Nonint の構築・対角化）／ <code>plot_dos</code>・<code>plot_fermi_surface</code>（この細メッシュ結果を使う）</div>
+    </div>
+
+    <!-- ============ plot_band_and_dos ============ -->
+    <div class="fn-row">
+      <span class="fn-name">plot_band_and_dos<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">左に DOS（縦向き）・右に k-path バンドを手動 axes 配置で 1 枚に描く</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">plot_band_and_dos(simfile; out_png, ngrid=DOS_NGRID, sigma=DOS_SIGMA, epad=DOS_EPAD, plot_Nq=DOS_PLOT_NQ)</div>
+
+      <h4>概要</h4>
+      <p>
+        <code>nonint/kpath</code> に保存された高対称点を結ぶ <b>バンド（k-path）</b>と、細メッシュから作った <b>DOS</b> を、
+        <b>1 枚の図に横並び</b>で描く。左に DOS を縦向き（横軸 DOS・縦軸エネルギー）、右にバンドを配置して、
+        同じ <code>E-μ<sub>0</sub></code> スケールで縦軸を揃える。<code>kpath</code> が無いファイルはスキップする。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">4_plot_nonint.jl · plot_band_and_dos</div>
+<pre>function plot_band_and_dos(simfile; out_png,
+        ngrid=DOS_NGRID, sigma=DOS_SIGMA, epad=DOS_EPAD, plot_Nq=DOS_PLOT_NQ)
+    local b, bandE, kdist, tick_pos, tick_label, ENERGY_diag
+    h5open(simfile, "r") do f
+        b = _read_basic(f)
+        haskey(f, "nonint/kpath") || (println("No kpath; skip band+DOS."); return)
+        g = f["nonint/kpath"]
+        bandE = read(g["band_energy"]); kdist = read(g["kdist"])
+        tick_pos = Int.(read(g["tick_pos"])); tick_label = String.(read(g["tick_label"]))
+        ENERGY_diag = read(f["nonint/diag/ENERGY_diag"])
+    end
+
+    Nk, Norb = size(bandE)
+    Eb = bandE .- b.mu0
+    emin = minimum(Eb) - epad
+    emax = maximum(Eb) + epad
+
+    # DOS 用に細かいメッシュで再計算
+    ED = plot_Nq === nothing ? ENERGY_diag : _recompute_energy_diag(b.hopping_path, b.Norb, plot_Nq)
+    Nk_mesh = size(ED, 1) * size(ED, 2)
+    E = vec(@view ED[:, :, 1, :]) .- b.mu0
+    grid = collect(range(emin, emax; length=ngrid))
+    dos = zeros(Float64, ngrid)
+    @inbounds for ei in E, ig in 1:ngrid
+        dos[ig] += _gauss(grid[ig] - ei, sigma)
+    end
+    dos ./= Nk_mesh
+
+    # 左に DOS（細）、右にバンド（広）を手動配置
+    fig = figure(figsize=(10.6, 4.4))
+    left, right, bottom, top, gap, dos_w = 0.07, 0.985, 0.14, 0.88, 0.04, 0.14
+    band_w = (right - left) - dos_w - gap
+    ax_dos = fig.add_axes([left, bottom, dos_w, top - bottom])
+    ax_band = fig.add_axes([left + dos_w + gap, bottom, band_w, top - bottom])
+
+    ax_dos.plot(dos, grid, color="tab:blue", linewidth=1.4)
+    ax_dos.axhline(0.0, color="k", linewidth=0.6, alpha=0.6)
+    ax_dos.set_xlabel(@sprintf("DOS (σ=%.3g)", sigma))
+    ax_dos.set_ylabel("E - μ₀")
+    ax_dos.grid(alpha=0.15)
+    ax_dos.set_ylim(emin, emax)
+    ax_band.set_ylim(emin, emax)
+
+    for ib in 1:Norb
+        ax_band.plot(kdist, Eb[:, ib], linewidth=1.0, color="crimson")
+    end
+    ax_band.axhline(0.0, color="k", linewidth=0.6)
+    ax_band.set_xlim(kdist[1], kdist[end])
+    if !isempty(tick_pos)
+        ax_band.set_xticks(kdist[tick_pos]); ax_band.set_xticklabels(tick_label)
+        for p in tick_pos
+            ax_band.axvline(kdist[p], color="gray", linestyle=":", linewidth=0.8, alpha=0.6)
+        end
+    end
+    ax_band.set_xlabel("k-path")
+    ax_band.tick_params(axis="y", labelleft=false)
+    fig.suptitle("Non-interacting band + DOS", fontsize=12)
+    savefig(out_png, dpi=240, bbox_inches="tight", pad_inches=0.06)
+    close(fig)
+    println("Saved: $out_png")
+end</pre>
+      </div>
+
+      <h4>読み方（段階）</h4>
+      <ul class="read-list">
+        <li><b>① 読み込み：</b> <code>h5open(simfile, "r") do f … end</code> で <code>_read_basic</code>・k-path のバンド <code>band_energy</code>・k 距離 <code>kdist</code>・高対称点の <code>tick_pos</code>/<code>tick_label</code>・格子の <code>ENERGY_diag</code> を取り出す。<code>haskey(f, "nonint/kpath") || (…; return)</code> で <b>kpath が無ければ即スキップ</b>。<code>local</code> で変数を <code>do</code> ブロック外へ持ち出す。</li>
+        <li><b>② DOS 計算：</b> <code>ED = plot_Nq === nothing ? ENERGY_diag : _recompute_energy_diag(...)</code> — 既定は細メッシュ再計算、<code>plot_Nq=nothing</code> のときだけ保存メッシュを流用。<code>E = vec(@view ED[:, :, 1, :]) .- b.mu0</code> で全固有値を <code>E-μ<sub>0</sub></code> の 1 次元に平坦化し、<code>_gauss</code> を全点に足して <code>dos ./= Nk_mesh</code> で k 数で規格化。</li>
+        <li><b>③ レイアウト：</b> <code>fig.add_axes([left, bottom, w, h])</code> を 2 回呼び、<b>DOS 用（細幅 <code>dos_w</code>）とバンド用（残り幅 <code>band_w</code>）を手動配置</b>。<code>band_w = (right-left) - dos_w - gap</code> で隙間 <code>gap</code> を空けて割り付ける。両軸とも <code>set_ylim(emin, emax)</code> で<b>縦軸を共有</b>。</li>
+        <li><b>④ バンド描画：</b> <code>for ib in 1:Norb</code> で各バンドを <code>ax_band.plot(kdist, Eb[:, ib])</code>。<code>tick_pos</code> があれば <code>set_xticks</code>/<code>set_xticklabels</code> で高対称点ラベルを付け、<code>axvline</code> で縦の区切り線を引く。<code>tick_params(axis="y", labelleft=false)</code> で右パネルの縦目盛りラベルを消して DOS 側と重複させない。</li>
+        <li><code>savefig(out_png, dpi=240, bbox_inches="tight")</code> → <code>close(fig)</code> — PNG 保存して図を閉じる（メモリ解放）。</li>
+      </ul>
+
+      <div class="related">関連：<code>_recompute_energy_diag</code>（DOS 用の細メッシュ）／ <code>_gauss</code>（ブロードニング核）／ <code>plot_dos</code>（DOS 単体版）</div>
+    </div>
+
+    <!-- ============ plot_dos ============ -->
+    <div class="fn-row">
+      <span class="fn-name">plot_dos<span class="fn-ind">▶</span></span>
+      <span class="fn-sub">DOS 単体。細メッシュで再計算した全固有値をガウスで畳んで描く</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">plot_dos(simfile; out_png, ngrid=DOS_NGRID, sigma=DOS_SIGMA, epad=DOS_EPAD, plot_Nq=DOS_PLOT_NQ)</div>
+
+      <h4>概要</h4>
+      <p>
+        DOS だけを 1 枚に描くシンプル版。<code>plot_band_and_dos</code> の DOS 計算と同じ手順
+        （細メッシュ再計算 → 全固有値をガウスで畳む）だが、k-path バンドは描かず <b>横軸 <code>E-μ<sub>0</sub></code>・縦軸 DOS</b>
+        の通常向きで表示する。タイトルに <code>σ</code> と <code>rfill</code> を添える。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">4_plot_nonint.jl · plot_dos</div>
+<pre>function plot_dos(simfile; out_png,
+        ngrid=DOS_NGRID, sigma=DOS_SIGMA, epad=DOS_EPAD, plot_Nq=DOS_PLOT_NQ)
+    local b
+    h5open(simfile, "r") do f
+        b = _read_basic(f)
+    end
+    ED = _recompute_energy_diag(b.hopping_path, b.Norb, plot_Nq)
+    Nk_mesh = size(ED, 1) * size(ED, 2)
+    E = vec(@view ED[:, :, 1, :]) .- b.mu0
+    emin = minimum(E) - epad; emax = maximum(E) + epad
+    grid = collect(range(emin, emax; length=ngrid))
+    dos = zeros(Float64, ngrid)
+    @inbounds for ei in E, ig in 1:ngrid
+        dos[ig] += _gauss(grid[ig] - ei, sigma)
+    end
+    dos ./= Nk_mesh
+
+    fig = figure(figsize=(5.6, 4.2))
+    plot(grid, dos, color="crimson", linewidth=1.6)
+    axvline(0.0, color="k", linewidth=0.8, alpha=0.7)
+    xlabel("E - μ₀"); ylabel("DOS (per k-sum)")
+    title(@sprintf("Non-int DOS (σ=%.3g)  rfill=%.3f", sigma, b.rfill), fontsize=11)
+    tight_layout()
+    savefig(out_png, dpi=240, bbox_inches="tight", pad_inches=0.06)
+    close(fig)
+    println("Saved: $out_png")
+end</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>_read_basic</code> だけ読めば十分なので <code>do</code> ブロックは短い。以降は必ず <code>_recompute_energy_diag</code> で<b>細メッシュ再計算</b>（<code>plot_Nq</code> 分岐なし）。</li>
+        <li>DOS の作り方（<code>E</code> を平坦化 → <code>_gauss</code> を全点に加算 → <code>Nk_mesh</code> で規格化）は <code>plot_band_and_dos</code> の②と<b>同一</b>。</li>
+        <li><code>plot(grid, dos)</code> — こちらは<b>横軸エネルギー・縦軸 DOS</b>の通常向き。<code>axvline(0.0)</code> でフェルミ準位 <code>E-μ<sub>0</sub>=0</code> を示す。</li>
+        <li><code>title(@sprintf("… σ=%.3g  rfill=%.3f", sigma, b.rfill))</code> — <code>Printf</code> の書式でパラメータを埋め込む。</li>
+      </ul>
+
+      <div class="related">関連：<code>plot_band_and_dos</code>（バンドと併記する版）／ <code>_gauss</code>・<code>_recompute_energy_diag</code></div>
+    </div>
+
+    <!-- ============ plot_fermi_surface ============ -->
+    <div class="fn-row">
+      <span class="fn-name">plot_fermi_surface<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>E(k)-μ<sub>0</sub>=0</code> の等高線でフェルミ面を描く（BZ 外周・高対称点つき）</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">plot_fermi_surface(simfile; out_png, plot_Nq=FS_PLOT_NQ, axis_unit=:pi, force_lim=(-1.5, 1.5), supercell_range=1)</div>
+
+      <h4>概要</h4>
+      <p>
+        各バンドの <code>E(k)-μ<sub>0</sub></code> を 2 次元の <code>k<sub>x</sub>-k<sub>y</sub></code> 平面に並べ、
+        <b><code>0</code> の等高線</b>（<code>contour(levels=[0.0])</code>）を引くことでフェルミ面を描く。
+        <a href="../functions/lattice.html">lattice</a> の幾何ヘルパで BZ メッシュと外周を作り、<code>circshift</code> で
+        <code>Γ</code> を中心に置き、隣接 BZ を <code>supercell_range</code> だけタイル複製して連続したフェルミ面を見せる。
+        高対称点も散布する。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">4_plot_nonint.jl · plot_fermi_surface</div>
+<pre>function plot_fermi_surface(simfile; out_png, plot_Nq=FS_PLOT_NQ,
+        axis_unit=:pi, force_lim=(-1.5, 1.5), supercell_range=1)
+    local b, lattice_type, b1, b2, has_kpath, kfrac, tick_pos, tick_label
+    h5open(simfile, "r") do f
+        b = _read_basic(f)
+        gl = f["nonint/lattice"]
+        lattice_type = String(read(gl["lattice_type"]))
+        b1 = _as3(read(gl["b1"])); b2 = _as3(read(gl["b2"]))
+        has_kpath = haskey(f, "nonint/kpath")
+        if has_kpath
+            gk = f["nonint/kpath"]
+            kfrac = read(gk["k_frac"])
+            tick_pos = Int.(read(gk["tick_pos"])); tick_label = String.(read(gk["tick_label"]))
+        end
+    end
+
+    ED = _recompute_energy_diag(b.hopping_path, b.Norb, plot_Nq)  # Nq×Nq×1×Norb
+    Nqx = size(ED, 1); Nqy = size(ED, 2); Norb = b.Norb
+
+    # k=(0,0) を中央に来るよう circshift
+    shiftx, shifty = Nqx ÷ 2, Nqy ÷ 2
+    ENERGY_plot = circshift(ED, (shiftx, shifty, 0, 0))
+    mesh = _build_kmesh_cart(Nqx, Nqy; b1=b1, b2=b2, supercell_range=0, center_bz=true)
+
+    scale = axis_unit == :pi ? (1/π) : 1.0
+    Xp = mesh.X .* scale; Yp = mesh.Y .* scale
+    bz = _build_bz_mask(mesh.X, mesh.Y; lattice_type=lattice_type, b1=b1, b2=b2, mask_to_bz=false)
+    bx, by = bz.bx .* scale, bz.by .* scale
+    shifts = [(m, n) for m in -supercell_range:supercell_range, n in -supercell_range:supercell_range]
+
+    fig = figure(figsize=(5.6, 4.8))
+    for ib in 1:Norb
+        Z = permutedims(ENERGY_plot[:, :, 1, ib] .- b.mu0, (2, 1))  # (Nqy,Nqx)
+        for (m, n) in shifts
+            dx = (m*b1[1] + n*b2[1]) * scale
+            dy = (m*b1[2] + n*b2[2]) * scale
+            contour(Xp .+ dx, Yp .+ dy, Z; levels=[0.0], colors="crimson", linewidths=1.6)
+        end
+    end
+    plot(bx, by, color="k", linestyle="--", linewidth=1.2, alpha=0.9)  # BZ 境界
+
+    # 高対称点
+    if has_kpath &amp;&amp; !isempty(tick_pos)
+        for (p, lab) in zip(tick_pos, tick_label)
+            (1 &lt;= p &lt;= size(kfrac, 1)) || continue
+            xk = (kfrac[p, 1]*b1[1] + kfrac[p, 2]*b2[1]) * scale
+            yk = (kfrac[p, 1]*b1[2] + kfrac[p, 2]*b2[2]) * scale
+            scatter([xk], [yk], s=30, c="k", zorder=10)
+            isempty(lab) || text(xk, yk, lab, fontsize=10, ha="left", va="bottom")
+        end
+    end
+
+    if force_lim !== nothing
+        xlim(force_lim...); ylim(force_lim...)
+    end
+    gca().set_aspect("equal", adjustable="box")
+    title(@sprintf("Non-int FS (E=μ₀)  lattice=%s  rfill=%.3f", lattice_type, b.rfill), fontsize=11)
+    xlabel(axis_unit == :pi ? "k_x/π" : "k_x")
+    ylabel(axis_unit == :pi ? "k_y/π" : "k_y")
+    tight_layout()
+    savefig(out_png, dpi=240, bbox_inches="tight", pad_inches=0.08)
+    close(fig)
+    println("Saved: $out_png")
+end</pre>
+      </div>
+
+      <h4>読み方（段階）</h4>
+      <ul class="read-list">
+        <li><b>① 読み込み：</b> <code>_read_basic</code> に加え <code>nonint/lattice</code> から格子種 <code>lattice_type</code> と逆格子ベクトル <code>b1, b2</code>（<a href="../functions/lattice.html"><code>_as3</code></a> で 3 成分に整形）を読む。k-path があれば分数座標 <code>k_frac</code> と高対称点情報も取得。</li>
+        <li><b>② 細メッシュ再計算＋Γ 中心化：</b> <code>_recompute_energy_diag</code> で <code>Nq×Nq×1×Norb</code> の固有値を作り、<code>circshift(ED, (Nqx÷2, Nqy÷2, 0, 0))</code> で <b><code>k=(0,0)</code> を配列の中央へ移動</b>（<code>fftfreq</code> 並びの原点を絵の中心に持ってくる）。</li>
+        <li><b>③ BZ メッシュ・外周：</b> <a href="../functions/lattice.html"><code>_build_kmesh_cart</code></a> でカルテシアン格子 <code>X, Y</code> を、<a href="../functions/lattice.html"><code>_build_bz_mask</code></a>（<code>mask_to_bz=false</code>）で BZ 外周 <code>bx, by</code> を得る。<code>scale = axis_unit==:pi ? 1/π : 1.0</code> で軸を <code>k/π</code> 単位に換算。</li>
+        <li><b>④ 等高線＝フェルミ面：</b> 各バンドで <code>Z = permutedims(ENERGY_plot[…] .- b.mu0, (2,1))</code>（<code>contour</code> の <code>(row,col)=(y,x)</code> 規約に合わせて転置）を作り、<code>contour(...; levels=[0.0])</code> で <b><code>E-μ<sub>0</sub>=0</code> の 1 本の等高線</b>を引く。<code>shifts</code> で隣接 BZ 分だけ <code>(m·b1+n·b2)</code> ずらして<b>スーパーセル的にタイル複製</b>し、切れ目のないフェルミ面にする。</li>
+        <li><b>⑤ 高対称点：</b> <code>tick_pos</code>/<code>tick_label</code> があれば <code>(1 &lt;= p &lt;= size(kfrac, 1))</code> の範囲チェック後、<code>k_frac</code> を <code>b1, b2</code> でカルテシアンに変換して <code>scatter</code>＋<code>text</code> でラベル表示。</li>
+        <li><b>⑥ 仕上げ：</b> <code>force_lim</code> で表示範囲を固定、<code>set_aspect("equal")</code> で縦横比を 1:1 に（フェルミ面の形が歪まない）。タイトルに格子種と <code>rfill</code>、軸ラベルは <code>axis_unit</code> に応じて <code>k_x/π</code> か <code>k_x</code>。</li>
+      </ul>
+
+      <div class="related">関連：<a href="../functions/lattice.html"><code>_as3</code>／<code>_build_kmesh_cart</code>／<code>_build_bz_mask</code></a>（BZ 幾何）／ <code>_recompute_energy_diag</code>（細メッシュ固有値）</div>
+    </div>
+
+    <!-- ============ main ============ -->
+    <div class="fn-row">
+      <span class="fn-name">main<span class="fn-ind">▶</span></span>
+      <span class="fn-sub"><code>Noint/</code> を作り、band+DOS・DOS・FS の 3 枚を順に出力するエントリポイント</span>
+    </div>
+    <div class="fn-detail">
+      <div class="syntax-box">main()   # simulation.h5 → Noint/ に 3 枚の PNG</div>
+
+      <h4>概要</h4>
+      <p>
+        スクリプトのエントリポイント。<code>mkpath(OUTDIR)</code> で出力ディレクトリ <code>Noint/</code> を用意し、
+        <code>plot_band_and_dos</code>・<code>plot_dos</code>・<code>plot_fermi_surface</code> を順に呼んで
+        <code>band_kpath_dos.png</code>・<code>dos.png</code>・<code>fs.png</code> を出力する。ファイル末尾で <code>main()</code> を実行する。
+      </p>
+
+      <h4>コード</h4>
+      <div class="code-wrap">
+        <div class="code-head">4_plot_nonint.jl · main</div>
+<pre>function main()
+    println("--- Plot non-interacting from $SIM_FILENAME ---")
+    mkpath(OUTDIR)
+    plot_band_and_dos(SIM_FILENAME; out_png=joinpath(OUTDIR, "band_kpath_dos.png"))
+    plot_dos(SIM_FILENAME;          out_png=joinpath(OUTDIR, "dos.png"))
+    plot_fermi_surface(SIM_FILENAME; out_png=joinpath(OUTDIR, "fs.png"))
+end
+
+main()</pre>
+      </div>
+
+      <h4>読み方</h4>
+      <ul class="read-list">
+        <li><code>mkpath(OUTDIR)</code> — <code>Noint/</code> が無ければ作る（既にあっても失敗しない）。</li>
+        <li><code>joinpath(OUTDIR, "….png")</code> — OS に依らないパス連結で出力先を組み立て、各 <code>plot_*</code> に <code>out_png</code> として渡す。</li>
+        <li>3 関数はいずれも<b>同じ <code>simulation.h5</code> を独立に開いて読む</b>（状態を共有しない素直な構成）。</li>
+        <li>末尾の <code>main()</code> — <code>julia 4_plot_nonint.jl</code> で読み込むと同時に実行される。</li>
+      </ul>
+
+      <div class="related">関連：3 つの <code>plot_*</code> 関数（出力の実体）</div>
+    </div>
+
+  </div>
+
+  <div class="tip-box">
+    <b>なぜ細メッシュで描き直すのか：</b> DOS とフェルミ面は、保存済みの粗い k メッシュのままだと
+    ガウス幅より粗くて<b>ギザギザ</b>になったり等高線が途切れたりする。そこで <code>_recompute_energy_diag</code> で
+    <code>DOS_PLOT_NQ</code>／<code>FS_PLOT_NQ</code>（=256）の細メッシュに <code>H(k)</code> を作り直してから対角化することで、
+    <b>なめらかな DOS 曲線と連続したフェルミ面</b>が得られる。バンド（k-path）だけは元々連続なので再計算しない。
+  </div>
+
+  <div class="warn-box">
+    <b><code>ENV["MPLBACKEND"]="Agg"</code> は <code>using PyPlot</code> の前に：</b> Matplotlib のバックエンドは
+    <b>インポート時に確定</b>するため、<code>Agg</code>（画面を持たないファイル出力用バックエンド）を選ぶ設定は必ず
+    <code>using PyPlot</code> より<b>前</b>に置く。順序を逆にすると GUI バックエンドが選ばれ、ディスプレイの無い
+    サーバ（ヘッドレス環境）で <code>figure()</code> が失敗し得る。バッチで PNG を吐くだけならこの設定が必須。
+  </div>
+
+  <div class="note">
+    <b>関連ページ：</b> 感受率（<code>χ<sub>s</sub>/χ<sub>c</sub></code>）の可視化は
+    <code>5_plot_flex.jl</code>、超伝導ギャップ <code>φ(k)</code> の可視化は <code>6_plot_eliashberg.jl</code> を参照。
+    本ページの土台となる <code>H(k)</code> 構築・対角化は <a href="../functions/nonint.html">Nonint</a>、
+    BZ メッシュ・外周の幾何は <a href="../functions/lattice.html">lattice</a> にまとめてある。
+  </div>
+
+</main>
+
+<footer>
+  <p class="font-serif">&copy; 2026 研究メモ — Plot nonint</p>
+</footer>
+
+<script>
+  document.querySelectorAll('.fn-row').forEach(function (row) {
+    row.addEventListener('click', function () {
+      row.classList.toggle('open');
+    });
+  });
+</script>
+
+</body>
+</html>
